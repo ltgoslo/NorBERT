@@ -1,0 +1,456 @@
+path	colname
+..\data_exploration\all_wiki_sizes.xlsx	Language
+..\data_exploration\all_wiki_sizes.xlsx	Local_name
+..\data_exploration\all_wiki_sizes.xlsx	Wiki
+..\data_exploration\all_wiki_sizes.xlsx	Articles
+..\data_exploration\all_wiki_sizes.xlsx	Total_pages
+..\data_exploration\all_wiki_sizes.xlsx	Edits
+..\data_exploration\all_wiki_sizes.xlsx	Admins
+..\data_exploration\all_wiki_sizes.xlsx	Users
+..\data_exploration\all_wiki_sizes.xlsx	Active_users
+..\data_exploration\all_wiki_sizes.xlsx	Images
+..\data_exploration\all_wiki_sizes.xlsx	Depth
+..\data_exploration\multiword_stats.xlsx	language
+..\data_exploration\multiword_stats.xlsx	train
+..\data_exploration\multiword_stats.xlsx	train (%)
+..\data_exploration\multiword_stats.xlsx	dev
+..\data_exploration\multiword_stats.xlsx	dev (%)
+..\data_exploration\multiword_stats.xlsx	test
+..\data_exploration\multiword_stats.xlsx	test (%)
+..\data_exploration\pos_above_length.xlsx	language
+..\data_exploration\pos_above_length.xlsx	train >128
+..\data_exploration\pos_above_length.xlsx	train >128(%)
+..\data_exploration\pos_above_length.xlsx	train >256
+..\data_exploration\pos_above_length.xlsx	train >256(%)
+..\data_exploration\pos_above_length.xlsx	dev >128
+..\data_exploration\pos_above_length.xlsx	dev >128(%)
+..\data_exploration\pos_above_length.xlsx	dev >256
+..\data_exploration\pos_above_length.xlsx	dev >256(%)
+..\data_exploration\pos_above_length.xlsx	test >128
+..\data_exploration\pos_above_length.xlsx	test >128(%)
+..\data_exploration\pos_above_length.xlsx	test >256
+..\data_exploration\pos_above_length.xlsx	test >256(%)
+..\data_exploration\pos_above_length.xlsx	train+dev >128
+..\data_exploration\pos_above_length.xlsx	train+dev >128(%)
+..\data_exploration\pos_above_length.xlsx	train+dev >256
+..\data_exploration\pos_above_length.xlsx	train+dev >256(%)
+..\data_exploration\pos_basic_stats.xlsx	language
+..\data_exploration\pos_basic_stats.xlsx	train_examples
+..\data_exploration\pos_basic_stats.xlsx	dev_examples
+..\data_exploration\pos_basic_stats.xlsx	test_examples
+..\data_exploration\pos_basic_stats.xlsx	train_avg_tokens
+..\data_exploration\pos_basic_stats.xlsx	dev_avg_tokens
+..\data_exploration\pos_basic_stats.xlsx	test_avg_tokens
+..\data_exploration\pos_basic_stats.xlsx	train_hapaxes
+..\data_exploration\pos_basic_stats.xlsx	train_hapaxes(%)
+..\data_exploration\pos_basic_stats.xlsx	dev_hapaxes
+..\data_exploration\pos_basic_stats.xlsx	dev_hapaxes(%)
+..\data_exploration\pos_basic_stats.xlsx	test_hapaxes
+..\data_exploration\pos_basic_stats.xlsx	test_hapaxes(%)
+..\data_exploration\pos_basic_stats.xlsx	train_unknown
+..\data_exploration\pos_basic_stats.xlsx	train_unknown(%)
+..\data_exploration\pos_basic_stats.xlsx	dev_unknown
+..\data_exploration\pos_basic_stats.xlsx	dev_unknown(%)
+..\data_exploration\pos_basic_stats.xlsx	test_unknown
+..\data_exploration\pos_basic_stats.xlsx	test_unknown(%)
+..\data_exploration\pos_split_word_stats.xlsx	Language
+..\data_exploration\pos_split_word_stats.xlsx	split_word_%_train
+..\data_exploration\pos_split_word_stats.xlsx	avg_subwords_per_split_train
+..\data_exploration\pos_split_word_stats.xlsx	subword_token_%_train
+..\data_exploration\pos_split_word_stats.xlsx	split_word_%
+..\data_exploration\pos_split_word_stats.xlsx	avg_subwords_per_split
+..\data_exploration\pos_split_word_stats.xlsx	subword_token_%
+..\data_exploration\pos_text_types.xlsx	Group
+..\data_exploration\pos_text_types.xlsx	Language
+..\data_exploration\pos_text_types.xlsx	Train/Dev dataset
+..\data_exploration\pos_text_types.xlsx	Train/Dev text type
+..\data_exploration\pos_text_types.xlsx	Test dataset
+..\data_exploration\pos_text_types.xlsx	Test text type
+..\data_exploration\pos_type_to_token.xlsx	Language
+..\data_exploration\pos_type_to_token.xlsx	train_ttr
+..\data_exploration\pos_type_to_token.xlsx	dev_ttr
+..\data_exploration\pos_type_to_token.xlsx	test_ttr
+..\data_exploration\pos_type_to_token.xlsx	train_twr
+..\data_exploration\pos_type_to_token.xlsx	dev_twr
+..\data_exploration\pos_type_to_token.xlsx	test_twr
+..\data_exploration\pos_type_to_token.xlsx	grez_ttr
+..\data_exploration\pos_type_to_token.xlsx	dif_grez_ttr
+..\data_exploration\pos_type_to_token.xlsx	dif_grez_ttr_%
+..\data_exploration\relative_lengths.xlsx	Language
+..\data_exploration\relative_lengths.xlsx	Relative Difference (%)
+..\data_exploration\relative_lengths.xlsx	test_avg_tokens_pos
+..\data_exploration\relative_lengths.xlsx	expected_length_pos
+..\data_exploration\relative_lengths.xlsx	difference_expected_pos
+..\data_exploration\relative_lengths.xlsx	test_avg_tokens_sentiment
+..\data_exploration\relative_lengths.xlsx	expected_length_sentiment
+..\data_exploration\relative_lengths.xlsx	difference_expected_sentiment
+..\data_exploration\sentiment_above_length.xlsx	language
+..\data_exploration\sentiment_above_length.xlsx	train >256
+..\data_exploration\sentiment_above_length.xlsx	train >256(%)
+..\data_exploration\sentiment_above_length.xlsx	train >512
+..\data_exploration\sentiment_above_length.xlsx	train >512(%)
+..\data_exploration\sentiment_above_length.xlsx	dev >256
+..\data_exploration\sentiment_above_length.xlsx	dev >256(%)
+..\data_exploration\sentiment_above_length.xlsx	dev >512
+..\data_exploration\sentiment_above_length.xlsx	dev >512(%)
+..\data_exploration\sentiment_above_length.xlsx	test >256
+..\data_exploration\sentiment_above_length.xlsx	test >256(%)
+..\data_exploration\sentiment_above_length.xlsx	test >512
+..\data_exploration\sentiment_above_length.xlsx	test >512(%)
+..\data_exploration\sentiment_above_length.xlsx	>256
+..\data_exploration\sentiment_above_length.xlsx	>256(%)
+..\data_exploration\sentiment_above_length.xlsx	>512
+..\data_exploration\sentiment_above_length.xlsx	>512(%)
+..\data_exploration\sentiment_balance.xlsx	Language
+..\data_exploration\sentiment_balance.xlsx	Positive
+..\data_exploration\sentiment_balance.xlsx	Total
+..\data_exploration\sentiment_balance.xlsx	Ratio
+..\data_exploration\sentiment_basic_stats.xlsx	language
+..\data_exploration\sentiment_basic_stats.xlsx	train_examples
+..\data_exploration\sentiment_basic_stats.xlsx	dev_examples
+..\data_exploration\sentiment_basic_stats.xlsx	test_examples
+..\data_exploration\sentiment_basic_stats.xlsx	train_avg_tokens
+..\data_exploration\sentiment_basic_stats.xlsx	dev_avg_tokens
+..\data_exploration\sentiment_basic_stats.xlsx	test_avg_tokens
+..\data_exploration\sentiment_basic_stats.xlsx	train_hapaxes
+..\data_exploration\sentiment_basic_stats.xlsx	train_hapaxes(%)
+..\data_exploration\sentiment_basic_stats.xlsx	dev_hapaxes
+..\data_exploration\sentiment_basic_stats.xlsx	dev_hapaxes(%)
+..\data_exploration\sentiment_basic_stats.xlsx	test_hapaxes
+..\data_exploration\sentiment_basic_stats.xlsx	test_hapaxes(%)
+..\data_exploration\sentiment_basic_stats.xlsx	train_unknown
+..\data_exploration\sentiment_basic_stats.xlsx	train_unknown(%)
+..\data_exploration\sentiment_basic_stats.xlsx	dev_unknown
+..\data_exploration\sentiment_basic_stats.xlsx	dev_unknown(%)
+..\data_exploration\sentiment_basic_stats.xlsx	test_unknown
+..\data_exploration\sentiment_basic_stats.xlsx	test_unknown(%)
+..\data_exploration\sentiment_text_types.xlsx	Group
+..\data_exploration\sentiment_text_types.xlsx	Language
+..\data_exploration\sentiment_text_types.xlsx	Text type
+..\data_exploration\sentiment_text_types.xlsx	Topic(s)
+..\data_exploration\tag_stats\tag_stats_agglutinative.xlsx	TRAIN
+..\data_exploration\tag_stats\tag_stats_agglutinative.xlsx	Unnamed: 1
+..\data_exploration\tag_stats\tag_stats_agglutinative.xlsx	Unnamed: 2
+..\data_exploration\tag_stats\tag_stats_agglutinative.xlsx	Unnamed: 3
+..\data_exploration\tag_stats\tag_stats_agglutinative.xlsx	Unnamed: 4
+..\data_exploration\tag_stats\tag_stats_agglutinative.xlsx	DEV
+..\data_exploration\tag_stats\tag_stats_agglutinative.xlsx	Unnamed: 6
+..\data_exploration\tag_stats\tag_stats_agglutinative.xlsx	Unnamed: 7
+..\data_exploration\tag_stats\tag_stats_agglutinative.xlsx	Unnamed: 8
+..\data_exploration\tag_stats\tag_stats_agglutinative.xlsx	Unnamed: 9
+..\data_exploration\tag_stats\tag_stats_agglutinative.xlsx	TEST
+..\data_exploration\tag_stats\tag_stats_agglutinative.xlsx	Unnamed: 11
+..\data_exploration\tag_stats\tag_stats_agglutinative.xlsx	Unnamed: 12
+..\data_exploration\tag_stats\tag_stats_agglutinative.xlsx	Unnamed: 13
+..\data_exploration\tag_stats\tag_stats_agglutinative.xlsx	Unnamed: 14
+..\data_exploration\tag_stats\tag_stats_agglutinative.xlsx	TOTAL
+..\data_exploration\tag_stats\tag_stats_agglutinative.xlsx	Unnamed: 16
+..\data_exploration\tag_stats\tag_stats_agglutinative.xlsx	Unnamed: 17
+..\data_exploration\tag_stats\tag_stats_agglutinative.xlsx	Unnamed: 18
+..\data_exploration\tag_stats\tag_stats_fusional.xlsx	TRAIN
+..\data_exploration\tag_stats\tag_stats_fusional.xlsx	Unnamed: 1
+..\data_exploration\tag_stats\tag_stats_fusional.xlsx	Unnamed: 2
+..\data_exploration\tag_stats\tag_stats_fusional.xlsx	Unnamed: 3
+..\data_exploration\tag_stats\tag_stats_fusional.xlsx	Unnamed: 4
+..\data_exploration\tag_stats\tag_stats_fusional.xlsx	DEV
+..\data_exploration\tag_stats\tag_stats_fusional.xlsx	Unnamed: 6
+..\data_exploration\tag_stats\tag_stats_fusional.xlsx	Unnamed: 7
+..\data_exploration\tag_stats\tag_stats_fusional.xlsx	Unnamed: 8
+..\data_exploration\tag_stats\tag_stats_fusional.xlsx	Unnamed: 9
+..\data_exploration\tag_stats\tag_stats_fusional.xlsx	TEST
+..\data_exploration\tag_stats\tag_stats_fusional.xlsx	Unnamed: 11
+..\data_exploration\tag_stats\tag_stats_fusional.xlsx	Unnamed: 12
+..\data_exploration\tag_stats\tag_stats_fusional.xlsx	Unnamed: 13
+..\data_exploration\tag_stats\tag_stats_fusional.xlsx	Unnamed: 14
+..\data_exploration\tag_stats\tag_stats_fusional.xlsx	TOTAL
+..\data_exploration\tag_stats\tag_stats_fusional.xlsx	Unnamed: 16
+..\data_exploration\tag_stats\tag_stats_fusional.xlsx	Unnamed: 17
+..\data_exploration\tag_stats\tag_stats_fusional.xlsx	Unnamed: 18
+..\data_exploration\tag_stats\tag_stats_introflexive.xlsx	TRAIN
+..\data_exploration\tag_stats\tag_stats_introflexive.xlsx	Unnamed: 1
+..\data_exploration\tag_stats\tag_stats_introflexive.xlsx	Unnamed: 2
+..\data_exploration\tag_stats\tag_stats_introflexive.xlsx	Unnamed: 3
+..\data_exploration\tag_stats\tag_stats_introflexive.xlsx	Unnamed: 4
+..\data_exploration\tag_stats\tag_stats_introflexive.xlsx	DEV
+..\data_exploration\tag_stats\tag_stats_introflexive.xlsx	Unnamed: 6
+..\data_exploration\tag_stats\tag_stats_introflexive.xlsx	Unnamed: 7
+..\data_exploration\tag_stats\tag_stats_introflexive.xlsx	Unnamed: 8
+..\data_exploration\tag_stats\tag_stats_introflexive.xlsx	Unnamed: 9
+..\data_exploration\tag_stats\tag_stats_introflexive.xlsx	TEST
+..\data_exploration\tag_stats\tag_stats_introflexive.xlsx	Unnamed: 11
+..\data_exploration\tag_stats\tag_stats_introflexive.xlsx	Unnamed: 12
+..\data_exploration\tag_stats\tag_stats_introflexive.xlsx	Unnamed: 13
+..\data_exploration\tag_stats\tag_stats_introflexive.xlsx	Unnamed: 14
+..\data_exploration\tag_stats\tag_stats_introflexive.xlsx	TOTAL
+..\data_exploration\tag_stats\tag_stats_introflexive.xlsx	Unnamed: 16
+..\data_exploration\tag_stats\tag_stats_introflexive.xlsx	Unnamed: 17
+..\data_exploration\tag_stats\tag_stats_introflexive.xlsx	Unnamed: 18
+..\data_exploration\tag_stats\tag_stats_isolating.xlsx	TRAIN
+..\data_exploration\tag_stats\tag_stats_isolating.xlsx	Unnamed: 1
+..\data_exploration\tag_stats\tag_stats_isolating.xlsx	Unnamed: 2
+..\data_exploration\tag_stats\tag_stats_isolating.xlsx	Unnamed: 3
+..\data_exploration\tag_stats\tag_stats_isolating.xlsx	Unnamed: 4
+..\data_exploration\tag_stats\tag_stats_isolating.xlsx	DEV
+..\data_exploration\tag_stats\tag_stats_isolating.xlsx	Unnamed: 6
+..\data_exploration\tag_stats\tag_stats_isolating.xlsx	Unnamed: 7
+..\data_exploration\tag_stats\tag_stats_isolating.xlsx	Unnamed: 8
+..\data_exploration\tag_stats\tag_stats_isolating.xlsx	Unnamed: 9
+..\data_exploration\tag_stats\tag_stats_isolating.xlsx	TEST
+..\data_exploration\tag_stats\tag_stats_isolating.xlsx	Unnamed: 11
+..\data_exploration\tag_stats\tag_stats_isolating.xlsx	Unnamed: 12
+..\data_exploration\tag_stats\tag_stats_isolating.xlsx	Unnamed: 13
+..\data_exploration\tag_stats\tag_stats_isolating.xlsx	Unnamed: 14
+..\data_exploration\tag_stats\tag_stats_isolating.xlsx	TOTAL
+..\data_exploration\tag_stats\tag_stats_isolating.xlsx	Unnamed: 16
+..\data_exploration\tag_stats\tag_stats_isolating.xlsx	Unnamed: 17
+..\data_exploration\tag_stats\tag_stats_isolating.xlsx	Unnamed: 18
+..\results\baselines_pos.xlsx	Language
+..\results\baselines_pos.xlsx	Baseline
+..\results\baselines_sentiment.xlsx	Language
+..\results\baselines_sentiment.xlsx	Baseline
+..\results\melted_results_pos.xlsx	Train Group
+..\results\melted_results_pos.xlsx	Train Language
+..\results\melted_results_pos.xlsx	Test Language
+..\results\melted_results_pos.xlsx	Cross
+..\results\melted_results_pos.xlsx	Test Group
+..\results\melted_results_pos.xlsx	Within
+..\results\melted_results_pos.xlsx	Transfer
+..\results\melted_results_pos.xlsx	Group Difference
+..\results\melted_results_sentiment.xlsx	Train Group
+..\results\melted_results_sentiment.xlsx	Train Language
+..\results\melted_results_sentiment.xlsx	Test Language
+..\results\melted_results_sentiment.xlsx	Cross
+..\results\melted_results_sentiment.xlsx	Test Group
+..\results\melted_results_sentiment.xlsx	Within
+..\results\melted_results_sentiment.xlsx	Transfer
+..\results\melted_results_sentiment.xlsx	Group Difference
+..\results\pos_within_cross_accuracy.xlsx	Group
+..\results\pos_within_cross_accuracy.xlsx	Language
+..\results\pos_within_cross_accuracy.xlsx	Cross-Language-Accuracy
+..\results\pos_within_cross_accuracy.xlsx	Within-Language-Accuracy
+..\results\pos_within_cross_accuracy.xlsx	Mean-Accuracy-Over-Language
+..\results\pos_within_cross_accuracy.xlsx	PUD
+..\results\results_pos.xlsx	Language
+..\results\results_pos.xlsx	English
+..\results\results_pos.xlsx	Arabic
+..\results\results_pos.xlsx	Bulgarian
+..\results\results_pos.xlsx	Basque
+..\results\results_pos.xlsx	Finnish
+..\results\results_pos.xlsx	Hebrew
+..\results\results_pos.xlsx	Croatian
+..\results\results_pos.xlsx	Japanese
+..\results\results_pos.xlsx	Korean
+..\results\results_pos.xlsx	Russian
+..\results\results_pos.xlsx	Slovak
+..\results\results_pos.xlsx	Turkish
+..\results\results_pos.xlsx	Vietnamese
+..\results\results_pos.xlsx	Chinese
+..\results\results_pos_postprocessed.xlsx	Group
+..\results\results_pos_postprocessed.xlsx	Test\Train
+..\results\results_pos_postprocessed.xlsx	Bulgarian
+..\results\results_pos_postprocessed.xlsx	English
+..\results\results_pos_postprocessed.xlsx	Russian
+..\results\results_pos_postprocessed.xlsx	Slovak
+..\results\results_pos_postprocessed.xlsx	Croatian
+..\results\results_pos_postprocessed.xlsx	Chinese
+..\results\results_pos_postprocessed.xlsx	Vietnamese
+..\results\results_pos_postprocessed.xlsx	Thai
+..\results\results_pos_postprocessed.xlsx	Finnish
+..\results\results_pos_postprocessed.xlsx	Basque
+..\results\results_pos_postprocessed.xlsx	Japanese
+..\results\results_pos_postprocessed.xlsx	Korean
+..\results\results_pos_postprocessed.xlsx	Turkish
+..\results\results_pos_postprocessed.xlsx	Arabic
+..\results\results_pos_postprocessed.xlsx	Hebrew
+..\results\results_pos_postprocessed.xlsx	Baseline
+..\results\results_sentiment.xlsx	Language
+..\results\results_sentiment.xlsx	English
+..\results\results_sentiment.xlsx	Basque
+..\results\results_sentiment.xlsx	Finnish
+..\results\results_sentiment.xlsx	Vietnamese
+..\results\results_sentiment.xlsx	Croatian
+..\results\results_sentiment.xlsx	Chinese
+..\results\results_sentiment.xlsx	Bulgarian
+..\results\results_sentiment.xlsx	Slovak
+..\results\results_sentiment.xlsx	Thai
+..\results\results_sentiment.xlsx	Korean
+..\results\results_sentiment.xlsx	Hebrew
+..\results\results_sentiment.xlsx	Arabic
+..\results\results_sentiment_postprocessed.xlsx	Group
+..\results\results_sentiment_postprocessed.xlsx	Test\Train
+..\results\results_sentiment_postprocessed.xlsx	Bulgarian
+..\results\results_sentiment_postprocessed.xlsx	English
+..\results\results_sentiment_postprocessed.xlsx	Slovak
+..\results\results_sentiment_postprocessed.xlsx	Croatian
+..\results\results_sentiment_postprocessed.xlsx	Chinese
+..\results\results_sentiment_postprocessed.xlsx	Vietnamese
+..\results\results_sentiment_postprocessed.xlsx	Thai
+..\results\results_sentiment_postprocessed.xlsx	Finnish
+..\results\results_sentiment_postprocessed.xlsx	Basque
+..\results\results_sentiment_postprocessed.xlsx	Korean
+..\results\results_sentiment_postprocessed.xlsx	Arabic
+..\results\results_sentiment_postprocessed.xlsx	Hebrew
+..\results\results_sentiment_postprocessed.xlsx	Baseline
+..\results\sentiment_within_cross_f1.xlsx	Group
+..\results\sentiment_within_cross_f1.xlsx	Language
+..\results\sentiment_within_cross_f1.xlsx	Cross-Language-F1
+..\results\sentiment_within_cross_f1.xlsx	Within-Language-F1
+..\results\sentiment_within_cross_f1.xlsx	Mean-F1-Over-Language
+..\results\transfer_loss_groupvgroup_pos.xlsx	Train-Group
+..\results\transfer_loss_groupvgroup_pos.xlsx	Test-Group
+..\results\transfer_loss_groupvgroup_pos.xlsx	Within-Accuracy
+..\results\transfer_loss_groupvgroup_pos.xlsx	Cross-Accuracy
+..\results\transfer_loss_groupvgroup_pos.xlsx	Transfer-Loss
+..\results\transfer_loss_groupvgroup_pos.xlsx	Relative-Transfer-Loss
+..\results\balanced_length\baselines_pos_balanced_length.xlsx	Language
+..\results\balanced_length\baselines_pos_balanced_length.xlsx	Baseline
+..\results\balanced_length\baselines_sentiment_balanced_length.xlsx	Language
+..\results\balanced_length\baselines_sentiment_balanced_length.xlsx	Baseline
+..\results\balanced_length\melted_results_pos_balanced_length.xlsx	Train Group
+..\results\balanced_length\melted_results_pos_balanced_length.xlsx	Train Language
+..\results\balanced_length\melted_results_pos_balanced_length.xlsx	Test Language
+..\results\balanced_length\melted_results_pos_balanced_length.xlsx	Cross
+..\results\balanced_length\melted_results_pos_balanced_length.xlsx	Test Group
+..\results\balanced_length\melted_results_pos_balanced_length.xlsx	Within
+..\results\balanced_length\melted_results_pos_balanced_length.xlsx	Transfer
+..\results\balanced_length\melted_results_pos_balanced_length.xlsx	Group Difference
+..\results\balanced_length\melted_results_sentiment_balanced_length.xlsx	Train Group
+..\results\balanced_length\melted_results_sentiment_balanced_length.xlsx	Train Language
+..\results\balanced_length\melted_results_sentiment_balanced_length.xlsx	Test Language
+..\results\balanced_length\melted_results_sentiment_balanced_length.xlsx	Cross
+..\results\balanced_length\melted_results_sentiment_balanced_length.xlsx	Test Group
+..\results\balanced_length\melted_results_sentiment_balanced_length.xlsx	Within
+..\results\balanced_length\melted_results_sentiment_balanced_length.xlsx	Transfer
+..\results\balanced_length\melted_results_sentiment_balanced_length.xlsx	Group Difference
+..\results\balanced_length\pos_within_cross_accuracy_balanced_length.xlsx	Group
+..\results\balanced_length\pos_within_cross_accuracy_balanced_length.xlsx	Language
+..\results\balanced_length\pos_within_cross_accuracy_balanced_length.xlsx	Cross-Language-Accuracy
+..\results\balanced_length\pos_within_cross_accuracy_balanced_length.xlsx	Within-Language-Accuracy
+..\results\balanced_length\pos_within_cross_accuracy_balanced_length.xlsx	Mean-Accuracy-Over-Language
+..\results\balanced_length\results_pos_balanced_length.xlsx	Language
+..\results\balanced_length\results_pos_balanced_length.xlsx	Arabic
+..\results\balanced_length\results_pos_balanced_length.xlsx	Bulgarian
+..\results\balanced_length\results_pos_balanced_length.xlsx	English
+..\results\balanced_length\results_pos_balanced_length.xlsx	Basque
+..\results\balanced_length\results_pos_balanced_length.xlsx	Finnish
+..\results\balanced_length\results_pos_balanced_length.xlsx	Hebrew
+..\results\balanced_length\results_pos_balanced_length.xlsx	Croatian
+..\results\balanced_length\results_pos_balanced_length.xlsx	Japanese
+..\results\balanced_length\results_pos_balanced_length.xlsx	Korean
+..\results\balanced_length\results_pos_balanced_length.xlsx	Russian
+..\results\balanced_length\results_pos_balanced_length.xlsx	Slovak
+..\results\balanced_length\results_pos_balanced_length.xlsx	Turkish
+..\results\balanced_length\results_pos_balanced_length.xlsx	Vietnamese
+..\results\balanced_length\results_pos_balanced_length.xlsx	Chinese
+..\results\balanced_length\results_pos_postprocessed_balanced_length.xlsx	Group
+..\results\balanced_length\results_pos_postprocessed_balanced_length.xlsx	Test\Train
+..\results\balanced_length\results_pos_postprocessed_balanced_length.xlsx	Bulgarian
+..\results\balanced_length\results_pos_postprocessed_balanced_length.xlsx	English
+..\results\balanced_length\results_pos_postprocessed_balanced_length.xlsx	Russian
+..\results\balanced_length\results_pos_postprocessed_balanced_length.xlsx	Slovak
+..\results\balanced_length\results_pos_postprocessed_balanced_length.xlsx	Croatian
+..\results\balanced_length\results_pos_postprocessed_balanced_length.xlsx	Chinese
+..\results\balanced_length\results_pos_postprocessed_balanced_length.xlsx	Vietnamese
+..\results\balanced_length\results_pos_postprocessed_balanced_length.xlsx	Thai
+..\results\balanced_length\results_pos_postprocessed_balanced_length.xlsx	Finnish
+..\results\balanced_length\results_pos_postprocessed_balanced_length.xlsx	Basque
+..\results\balanced_length\results_pos_postprocessed_balanced_length.xlsx	Japanese
+..\results\balanced_length\results_pos_postprocessed_balanced_length.xlsx	Korean
+..\results\balanced_length\results_pos_postprocessed_balanced_length.xlsx	Turkish
+..\results\balanced_length\results_pos_postprocessed_balanced_length.xlsx	Arabic
+..\results\balanced_length\results_pos_postprocessed_balanced_length.xlsx	Hebrew
+..\results\balanced_length\results_pos_postprocessed_balanced_length.xlsx	Baseline
+..\results\balanced_length\results_sentiment_balanced_length.xlsx	Language
+..\results\balanced_length\results_sentiment_balanced_length.xlsx	Arabic
+..\results\balanced_length\results_sentiment_balanced_length.xlsx	Bulgarian
+..\results\balanced_length\results_sentiment_balanced_length.xlsx	English
+..\results\balanced_length\results_sentiment_balanced_length.xlsx	Basque
+..\results\balanced_length\results_sentiment_balanced_length.xlsx	Finnish
+..\results\balanced_length\results_sentiment_balanced_length.xlsx	Hebrew
+..\results\balanced_length\results_sentiment_balanced_length.xlsx	Croatian
+..\results\balanced_length\results_sentiment_balanced_length.xlsx	Korean
+..\results\balanced_length\results_sentiment_balanced_length.xlsx	Slovak
+..\results\balanced_length\results_sentiment_balanced_length.xlsx	Thai
+..\results\balanced_length\results_sentiment_balanced_length.xlsx	Vietnamese
+..\results\balanced_length\results_sentiment_balanced_length.xlsx	Chinese
+..\results\balanced_length\results_sentiment_postprocessed_balanced_length.xlsx	Group
+..\results\balanced_length\results_sentiment_postprocessed_balanced_length.xlsx	Test\Train
+..\results\balanced_length\results_sentiment_postprocessed_balanced_length.xlsx	Bulgarian
+..\results\balanced_length\results_sentiment_postprocessed_balanced_length.xlsx	English
+..\results\balanced_length\results_sentiment_postprocessed_balanced_length.xlsx	Slovak
+..\results\balanced_length\results_sentiment_postprocessed_balanced_length.xlsx	Croatian
+..\results\balanced_length\results_sentiment_postprocessed_balanced_length.xlsx	Chinese
+..\results\balanced_length\results_sentiment_postprocessed_balanced_length.xlsx	Vietnamese
+..\results\balanced_length\results_sentiment_postprocessed_balanced_length.xlsx	Thai
+..\results\balanced_length\results_sentiment_postprocessed_balanced_length.xlsx	Finnish
+..\results\balanced_length\results_sentiment_postprocessed_balanced_length.xlsx	Basque
+..\results\balanced_length\results_sentiment_postprocessed_balanced_length.xlsx	Korean
+..\results\balanced_length\results_sentiment_postprocessed_balanced_length.xlsx	Arabic
+..\results\balanced_length\results_sentiment_postprocessed_balanced_length.xlsx	Hebrew
+..\results\balanced_length\results_sentiment_postprocessed_balanced_length.xlsx	Baseline
+..\results\balanced_length\sentiment_within_cross_accuracy_balanced_length.xlsx	Group
+..\results\balanced_length\sentiment_within_cross_accuracy_balanced_length.xlsx	Language
+..\results\balanced_length\sentiment_within_cross_accuracy_balanced_length.xlsx	Cross-Language-F1
+..\results\balanced_length\sentiment_within_cross_accuracy_balanced_length.xlsx	Within-Language-F1
+..\results\balanced_length\sentiment_within_cross_accuracy_balanced_length.xlsx	Mean-F1-Over-Language
+..\results\predictions\pos_full_labels.xlsx	Arabic
+..\results\predictions\pos_full_labels.xlsx	Bulgarian
+..\results\predictions\pos_full_labels.xlsx	English
+..\results\predictions\pos_full_labels.xlsx	Basque
+..\results\predictions\pos_full_labels.xlsx	Finnish
+..\results\predictions\pos_full_labels.xlsx	Hebrew
+..\results\predictions\pos_full_labels.xlsx	Croatian
+..\results\predictions\pos_full_labels.xlsx	Japanese
+..\results\predictions\pos_full_labels.xlsx	Korean
+..\results\predictions\pos_full_labels.xlsx	Russian
+..\results\predictions\pos_full_labels.xlsx	Slovak
+..\results\predictions\pos_full_labels.xlsx	Turkish
+..\results\predictions\pos_full_labels.xlsx	Vietnamese
+..\results\predictions\pos_full_labels.xlsx	Chinese
+..\results\predictions\pos_full_preds.xlsx	Arabic
+..\results\predictions\pos_full_preds.xlsx	Bulgarian
+..\results\predictions\pos_full_preds.xlsx	English
+..\results\predictions\pos_full_preds.xlsx	Basque
+..\results\predictions\pos_full_preds.xlsx	Finnish
+..\results\predictions\pos_full_preds.xlsx	Hebrew
+..\results\predictions\pos_full_preds.xlsx	Croatian
+..\results\predictions\pos_full_preds.xlsx	Japanese
+..\results\predictions\pos_full_preds.xlsx	Korean
+..\results\predictions\pos_full_preds.xlsx	Russian
+..\results\predictions\pos_full_preds.xlsx	Slovak
+..\results\predictions\pos_full_preds.xlsx	Turkish
+..\results\predictions\pos_full_preds.xlsx	Vietnamese
+..\results\predictions\pos_full_preds.xlsx	Chinese
+..\results\predictions\pos_reconstructed_labels.xlsx	Arabic
+..\results\predictions\pos_reconstructed_labels.xlsx	Bulgarian
+..\results\predictions\pos_reconstructed_labels.xlsx	English
+..\results\predictions\pos_reconstructed_labels.xlsx	Basque
+..\results\predictions\pos_reconstructed_labels.xlsx	Finnish
+..\results\predictions\pos_reconstructed_labels.xlsx	Hebrew
+..\results\predictions\pos_reconstructed_labels.xlsx	Croatian
+..\results\predictions\pos_reconstructed_labels.xlsx	Japanese
+..\results\predictions\pos_reconstructed_labels.xlsx	Korean
+..\results\predictions\pos_reconstructed_labels.xlsx	Russian
+..\results\predictions\pos_reconstructed_labels.xlsx	Slovak
+..\results\predictions\pos_reconstructed_labels.xlsx	Turkish
+..\results\predictions\pos_reconstructed_labels.xlsx	Vietnamese
+..\results\predictions\pos_reconstructed_labels.xlsx	Chinese
+..\results\predictions\pos_reconstructed_preds.xlsx	Arabic
+..\results\predictions\pos_reconstructed_preds.xlsx	Bulgarian
+..\results\predictions\pos_reconstructed_preds.xlsx	English
+..\results\predictions\pos_reconstructed_preds.xlsx	Basque
+..\results\predictions\pos_reconstructed_preds.xlsx	Finnish
+..\results\predictions\pos_reconstructed_preds.xlsx	Hebrew
+..\results\predictions\pos_reconstructed_preds.xlsx	Croatian
+..\results\predictions\pos_reconstructed_preds.xlsx	Japanese
+..\results\predictions\pos_reconstructed_preds.xlsx	Korean
+..\results\predictions\pos_reconstructed_preds.xlsx	Russian
+..\results\predictions\pos_reconstructed_preds.xlsx	Slovak
+..\results\predictions\pos_reconstructed_preds.xlsx	Turkish
+..\results\predictions\pos_reconstructed_preds.xlsx	Vietnamese
+..\results\predictions\pos_reconstructed_preds.xlsx	Chinese
+..\utils\lang_codes.xlsx	ISO 639-2 Code
+..\utils\lang_codes.xlsx	ISO 639-1 Code
+..\utils\lang_codes.xlsx	English name of Language
+..\utils\lang_codes.xlsx	French name of Language
+..\utils\lang_codes.xlsx	German name of Language
