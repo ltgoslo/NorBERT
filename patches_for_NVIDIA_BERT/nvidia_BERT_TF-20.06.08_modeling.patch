@@ -1,0 +1,119 @@
+--- modeling.py	2020-11-04 01:04:32.000000000 +0100
++++ modeling.py	2020-12-21 17:44:31.000000000 +0100
+@@ -122,7 +122,7 @@
+   model = modeling.BertModel(config=config, is_training=True,
+     input_ids=input_ids, input_mask=input_mask, token_type_ids=token_type_ids)
+ 
+-  label_embeddings = tf.get_variable(...)
++  label_embeddings = tf.compat.v1.get_variable(...)
+   pooled_output = model.get_pooled_output()
+   logits = tf.matmul(pooled_output, label_embeddings)
+   ...
+@@ -173,8 +173,8 @@
+     if token_type_ids is None:
+       token_type_ids = tf.zeros(shape=[batch_size, seq_length], dtype=tf.int32)
+ 
+-    with tf.variable_scope(scope, default_name="bert", custom_getter=get_custom_getter(compute_type)):
+-      with tf.variable_scope("embeddings"):
++    with tf.compat.v1.variable_scope(scope, default_name="bert", custom_getter=get_custom_getter(compute_type)):
++      with tf.compat.v1.variable_scope("embeddings"):
+         # For good convergence with mixed precision training,
+ 	# it is important that the embedding codes remain fp32.
+         # Perform embedding lookup on the word ids.
+@@ -201,7 +201,7 @@
+             dropout_prob=config.hidden_dropout_prob,
+             use_one_hot_embeddings=use_one_hot_embeddings)
+ 
+-      with tf.variable_scope("encoder"):
++      with tf.compat.v1.variable_scope("encoder"):
+         # This converts a 2D mask of shape [batch_size, seq_length] to a 3D
+         # mask of shape [batch_size, seq_length, seq_length] which is used
+         # for the attention scores.
+@@ -229,7 +229,7 @@
+       # [batch_size, hidden_size]. This is necessary for segment-level
+       # (or segment-pair-level) classification tasks where we need a fixed
+       # dimensional representation of the segment.
+-      with tf.variable_scope("pooler"):
++      with tf.compat.v1.variable_scope("pooler"):
+         # We "pool" the model by simply taking the hidden state corresponding
+         # to the first token. We assume that this has been pre-trained
+         first_token_tensor = tf.squeeze(self.sequence_output[:, 0:1, :], axis=1)
+@@ -424,7 +424,7 @@
+   if input_ids.shape.ndims == 2:
+     input_ids = tf.expand_dims(input_ids, axis=[-1])
+ 
+-  embedding_table = tf.get_variable(
++  embedding_table = tf.compat.v1.get_variable(
+       name=word_embedding_name,
+       shape=[vocab_size, embedding_size],
+       initializer=create_initializer(initializer_range))
+@@ -494,7 +494,7 @@
+     if token_type_ids is None:
+       raise ValueError("`token_type_ids` must be specified if"
+                        "`use_token_type` is True.")
+-    token_type_table = tf.get_variable(
++    token_type_table = tf.compat.v1.get_variable(
+         name=token_type_embedding_name,
+         shape=[token_type_vocab_size, width],
+         initializer=create_initializer(initializer_range))
+@@ -511,7 +511,7 @@
+     output += token_type_embeddings
+ 
+   if use_position_embeddings:
+-    full_position_embeddings = tf.get_variable(
++    full_position_embeddings = tf.compat.v1.get_variable(
+         name=position_embedding_name,
+         shape=[max_position_embeddings, width],
+         initializer=create_initializer(initializer_range))
+@@ -836,12 +836,12 @@
+ 
+   all_layer_outputs = []
+   for layer_idx in range(num_hidden_layers):
+-    with tf.variable_scope("layer_%d" % layer_idx):
++    with tf.compat.v1.variable_scope("layer_%d" % layer_idx):
+       layer_input = prev_output
+ 
+-      with tf.variable_scope("attention"):
++      with tf.compat.v1.variable_scope("attention"):
+         attention_heads = []
+-        with tf.variable_scope("self"):
++        with tf.compat.v1.variable_scope("self"):
+           attention_head = attention_layer(
+               from_tensor=layer_input,
+               to_tensor=layer_input,
+@@ -866,7 +866,7 @@
+ 
+         # Run a linear projection of `hidden_size` then add a residual
+         # with `layer_input`.
+-        with tf.variable_scope("output"):
++        with tf.compat.v1.variable_scope("output"):
+           attention_output = tf.layers.dense(
+               attention_output,
+               hidden_size,
+@@ -875,7 +875,7 @@
+           attention_output = layer_norm(attention_output + layer_input)
+ 
+       # The activation is only applied to the "intermediate" hidden layer.
+-      with tf.variable_scope("intermediate"):
++      with tf.compat.v1.variable_scope("intermediate"):
+         intermediate_output = tf.layers.dense(
+             attention_output,
+             intermediate_size,
+@@ -883,7 +883,7 @@
+             kernel_initializer=create_initializer(initializer_range))
+ 
+       # Down-project back to `hidden_size` then add the residual.
+-      with tf.variable_scope("output"):
++      with tf.compat.v1.variable_scope("output"):
+         layer_output = tf.layers.dense(
+             intermediate_output,
+             hidden_size,
+@@ -991,7 +991,7 @@
+ 
+   actual_rank = tensor.shape.ndims
+   if actual_rank not in expected_rank_dict:
+-    scope_name = tf.get_variable_scope().name
++    scope_name = tf.compat.v1.get_variable_scope().name
+     raise ValueError(
+         "For the tensor `%s` in scope `%s`, the actual rank "
+         "`%d` (shape = %s) is not equal to the expected rank `%s`" %

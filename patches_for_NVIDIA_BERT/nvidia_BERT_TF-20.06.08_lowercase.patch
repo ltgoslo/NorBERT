@@ -1,0 +1,10 @@
+--- utils/create_pretraining_data.py	2020-11-04 01:04:36.000000000 +0100
++++ utils/create_pretraining_data.py	2020-11-24 17:59:40.000000000 +0100
+@@ -465,7 +465,6 @@
+ 
+     parser.add_argument("--do_lower_case",
+                         action='store_true',
+-                        default=True,
+                         help="Whether to lower case the input text. True for uncased models, False for cased models.")
+     parser.add_argument('--random_seed',
+                         type=int,

@@ -1,0 +1,11 @@
+--- fused_layer_norm.py	2020-11-04 01:04:32.000000000 +0100
++++ fused_layer_norm.py	2020-12-21 17:59:15.000000000 +0100
+@@ -43,7 +43,7 @@
+                begin_params_axis=-1,
+                scope=None,
+                use_fused_batch_norm=False):
+-  with tf.variable_scope(
++  with tf.compat.v1.variable_scope(
+       scope, 'LayerNorm', [inputs], reuse=reuse) as sc:
+     inputs = ops.convert_to_tensor(inputs)
+     inputs_shape = inputs.shape
