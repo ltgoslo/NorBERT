@@ -50,7 +50,7 @@ ax.xaxis.set_major_formatter(DateFormatter('%Y-%m-%d'))
 ax.fmt_xdata = DateFormatter('%Y-%m-%d %H:%M:%S')
 fig.autofmt_xdate()
 
-plt.yticks(range(10))
+plt.yticks(range(8))
 plt.grid(axis='y')
 plt.title("NorBERT losses")
 plt.ylabel('Loss')
