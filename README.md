@@ -3,5 +3,7 @@ This repository contains in-house code used in training NorBERT: a large-scale T
 
 For general training, [BERT For TensorFlow from NVIDIA](https://github.com/NVIDIA/DeepLearningExamples/tree/master/TensorFlow/LanguageModeling/BERT) was used. We made minor changes to their code, to be published later. 
 
-- [Read about NorBERT](http://wiki.nlpl.eu/index.php?title=Vectors/norlm/norbert)
+- [Read about NorBERT](http://norlm.nlpl.eu)
 - [Download NorBERT](http://vectors.nlpl.eu/repository/)
+
+![Logo](https://github.com/ltgoslo/NorBERT/raw/main/Norbert.png)
