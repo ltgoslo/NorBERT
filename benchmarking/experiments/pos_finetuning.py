@@ -13,7 +13,7 @@ def test(training_lang,
          test_lang,
          split="test",
          short_model_name="ltgoslo/norbert",
-         model_name="norbert", epochs=5, data_path=None, task="pos"):
+         epochs=5, data_path=None, task="pos"):
     checkpoints_path = "checkpoints/"
     trainer = fine_tuning.Trainer(training_lang, data_path, task, short_model_name)
     # Model parameters
@@ -159,12 +159,6 @@ if __name__ == "__main__":
     model_identifier = args.short_model_name
     current_task = "pos"
 
-    # # Model parameters
-    # tagset = ["O", "_", "ADJ", "ADP", "ADV", "AUX", "CCONJ", "DET", "INTJ", "NOUN", "NUM",
-    #           "PART", "PRON", "PROPN", "PUNCT", "SCONJ", "SYM", "VERB", "X"]
-    # num_labels = len(tagset)
-    # label_map = {label: i for i, label in enumerate(tagset)}
-
     # Train models
     training_object = train(training_language, short_model_name=model_identifier,
                             data_path=ud_data_path, task=current_task)
@@ -173,13 +167,12 @@ if __name__ == "__main__":
                      training_language,
                      "dev",
                      short_model_name=model_identifier,
-                     model_name=run_name, data_path=ud_data_path, task=current_task)
+                     data_path=ud_data_path, task=current_task)
 
     test_score = test(training_language,
                       training_language,
                       "test",
                       short_model_name=model_identifier,
-                      model_name=run_name,
                       data_path=ud_data_path, task=current_task)
 
     table = pd.DataFrame({"Language": training_language,

@@ -1,33 +1,18 @@
 #!/bin/env python3
 
+import argparse
 import numpy as np
 import pandas as pd
-import glob
-import os
-import tensorflow as tf
-import transformers
-from transformers import (TFBertForSequenceClassification,
-                          BertTokenizer,
-                          TFXLMRobertaForSequenceClassification,
-                          XLMRobertaTokenizer,
-                          TFBertForTokenClassification,
-                          TFXLMRobertaForTokenClassification)
-from tqdm import tqdm
-import sys
-from data_preparation.data_preparation_pos import MBERTTokenizer, XLMRTokenizer, bert_convert_examples_to_tf_dataset, read_conll
-import utils.utils as utils
-import utils.pos_utils as pos_utils
-import fine_tuning
 import data_preparation.data_preparation_sentiment as data_preparation_sentiment
+import fine_tuning
 import utils.model_utils as model_utils
+import utils.pos_utils as pos_utils
 
-import argparse
 
 def test(training_lang,
          test_lang,
          split="test",
-         short_model_name="ltgoslo/norbert",
-         model_name="norbert"):
+         short_model_name="ltgoslo/norbert"):
     data_path = "../data/sentiment/"
     task = "sentiment"
     checkpoints_path = "checkpoints/"
@@ -35,36 +20,42 @@ def test(training_lang,
     # Model parameters
     max_length = 256
     eval_batch_size = 8
+    batch_size = 256
     learning_rate = 2e-5
     epochs = 30
     num_labels = 2
     # Model creation
-    trainer.build_model(max_length, batch_size, learning_rate, epochs, num_labels, eval_batch_size=eval_batch_size)
-    weights_path = "checkpoints/" + training_lang + "/"
+    trainer.build_model(max_length, batch_size, learning_rate, epochs, num_labels,
+                        eval_batch_size=eval_batch_size)
+    weights_path = checkpoints_path + training_lang + "/"
     weights_filename = short_model_name.replace("/", "_") + "_sentiment.hdf5"
     trainer.model.load_weights(weights_path + weights_filename)
     # Checkpoint for best model weights
     test_lang_path = data_path + test_lang
-    test_data, test_dataset = data_preparation_sentiment.load_dataset(test_lang_path, trainer.tokenizer, max_length, short_model_name, dataset_name=split)
-    #trainer.setup_eval(test_data, "test")
-    test_dataset, test_batches = model_utils.make_batches(test_dataset, eval_batch_size, repetitions=1, shuffle=False)
+    test_data, test_dataset = data_preparation_sentiment.load_dataset(test_lang_path,
+                                                                      trainer.tokenizer, max_length,
+                                                                      short_model_name,
+                                                                      dataset_name=split)
+    test_dataset, test_batches = model_utils.make_batches(test_dataset, eval_batch_size,
+                                                          repetitions=1, shuffle=False)
     test_preds = trainer.handle_oom(trainer.model.predict,
                                     test_dataset,
                                     steps=test_batches,
                                     verbose=1)
-    test_score = trainer.metric(test_preds, test_data, split) * 100
-    print("{0}-{1} {2}: {3:.1f}".format(training_lang, test_lang, split, test_score))
-    return test_score
+    score = trainer.metric(test_preds, test_data, split) * 100
+    print("{0}-{1} {2}: {3:.1f}".format(training_lang, test_lang, split, score))
+    return score
+
 
 def train(training_lang,
           short_model_name="ltgoslo/norbert",
-          use_class_weights=False,
-          checkpoint=None):
+          use_class_weights=False):
     data_path = "../data/sentiment/"
     task = "sentiment"
     checkpoints_path = "checkpoints/"
 
-    trainer = fine_tuning.Trainer(training_lang, data_path, task, short_model_name, use_class_weights)
+    trainer = fine_tuning.Trainer(training_lang, data_path, task, short_model_name,
+                                  use_class_weights)
 
     # Model parameters
     max_length = 256
@@ -73,7 +64,8 @@ def train(training_lang,
     epochs = 10
 
     # Model creation
-    trainer.build_model(max_length, batch_size, learning_rate, epochs, num_labels=2, eval_batch_size=32)
+    trainer.build_model(max_length, batch_size, learning_rate, epochs, num_labels=2,
+                        eval_batch_size=32)
 
     # Checkpoint for best model weights
     trainer.setup_checkpoint(checkpoints_path)
@@ -96,21 +88,20 @@ def train(training_lang,
         pass
     return trainer
 
-def prepare_test_data(trainer, limit=None, task="pos"):
+
+def prepare_test_data(trainer):
     # Load plain data and TF dataset
     data, dataset = data_preparation_sentiment.load_dataset(
-            trainer.lang_path, trainer.tokenizer, trainer.max_length,
-            tagset=trainer.tagset, dataset_name="test")
+        trainer.lang_path, trainer.tokenizer, trainer.max_length,
+        trainer.tagset, dataset_name="test")
     trainer.setup_eval(data, "test")
     dataset, batches = model_utils.make_batches(
-            dataset, trainer.eval_batch_size, repetitions=1, shuffle=False)
-    return (dataset, batches, data)
-
+        dataset, trainer.eval_batch_size, repetitions=1, shuffle=False)
+    return dataset, batches, data
 
 
 def setup_eval(data, tokenizer, label_map, max_length, dataset_name="test"):
-    eval_info = {}
-    eval_info[dataset_name] = {}
+    eval_info = {dataset_name: {}}
     eval_info[dataset_name]["all_words"] = []
     eval_info[dataset_name]["all_labels"] = []
     eval_info[dataset_name]["real_tokens"] = []
@@ -118,14 +109,16 @@ def setup_eval(data, tokenizer, label_map, max_length, dataset_name="test"):
     acc_lengths = 0
     #
     for i in range(len(data)):
-        eval_info[dataset_name]["all_words"].extend(data[i]["tokens"]) # Full words
-        eval_info[dataset_name]["all_labels"].extend([label_map[label] for label in data[i]["tags"]])
+        eval_info[dataset_name]["all_words"].extend(data[i]["tokens"])  # Full words
+        eval_info[dataset_name]["all_labels"].extend(
+            [label_map[label] for label in data[i]["tags"]])
         _, _, idx_map = tokenizer.subword_tokenize(data[i]["tokens"], data[i]["tags"])
         # Examples always start at a multiple of max_length
         # Where they end depends on the number of resulting subwords
         example_start = i * max_length
         example_end = example_start + len(idx_map)
-        eval_info[dataset_name]["real_tokens"].extend(np.arange(example_start, example_end, dtype=int))
+        eval_info[dataset_name]["real_tokens"].extend(
+            np.arange(example_start, example_end, dtype=int))
         # Get subword starts and ends
         sub_ids, sub_starts, sub_lengths = np.unique(idx_map, return_counts=True, return_index=True)
         sub_starts = sub_starts[sub_lengths > 1] + acc_lengths
@@ -134,15 +127,18 @@ def setup_eval(data, tokenizer, label_map, max_length, dataset_name="test"):
         acc_lengths += len(idx_map)
     return eval_info
 
+
 def get_score_pos(preds, dataset_name, eval_info):
-        filtered_preds = preds[0].argmax(axis=-1).flatten()[eval_info[dataset_name]["real_tokens"]].tolist()
-        filtered_logits = preds[0].reshape(
-            (preds[0].shape[0]*preds[0].shape[1], preds[0].shape[2])
-        )[eval_info[dataset_name]["real_tokens"]]
-        new_preds = pos_utils.reconstruct_subwords(
-            eval_info[dataset_name]["subword_locs"], filtered_preds, filtered_logits
-        )
-        return (np.array(eval_info[dataset_name]["all_labels"]) == np.array(new_preds)).mean()
+    filtered_preds = preds[0].argmax(axis=-1).flatten()[
+        eval_info[dataset_name]["real_tokens"]].tolist()
+    filtered_logits = preds[0].reshape(
+        (preds[0].shape[0] * preds[0].shape[1], preds[0].shape[2])
+    )[eval_info[dataset_name]["real_tokens"]]
+    new_preds = pos_utils.reconstruct_subwords(
+        eval_info[dataset_name]["subword_locs"], filtered_preds, filtered_logits
+    )
+    return (np.array(eval_info[dataset_name]["all_labels"]) == np.array(new_preds)).mean()
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
@@ -154,33 +150,24 @@ if __name__ == "__main__":
     print(args)
 
     data_dir = "../data/sentiment/"
-    training_lang = "no"
+    training_language = "no"
     model_name = args.model_name
-    short_model_name = args.short_model_name
-
-    # Model parameters
-    max_length = 256
-    batch_size = 256
-    num_labels = 2
+    model_identifier = args.short_model_name
 
     # Train models
-    trainer = train(training_lang,
-                    short_model_name=short_model_name)
+    training_object = train(training_language, short_model_name=model_identifier)
 
-
-    dev_score = test(training_lang,
-                     training_lang,
+    dev_score = test(training_language,
+                     training_language,
                      "dev",
-                     short_model_name=short_model_name,
-                     model_name=model_name)
+                     short_model_name=model_identifier)
 
-    test_score = test(training_lang,
-                      training_lang,
+    test_score = test(training_language,
+                      training_language,
                       "test",
-                      short_model_name=short_model_name,
-                      model_name=model_name)
+                      short_model_name=model_identifier)
 
-    table = pd.DataFrame({"Train Lang": training_lang,
+    table = pd.DataFrame({"Train Lang": training_language,
                           "Dev Acc": [dev_score],
                           "Test Acc": [test_score]
                           })
