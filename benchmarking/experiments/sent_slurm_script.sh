@@ -5,7 +5,7 @@
 #SBATCH --partition=accel
 #SBATCH --gres=gpu:1
 #SBATCH --nodes=1
-#SBATCH --time=10:00:00
+#SBATCH --time=5:00:00
 #SBATCH --mem=8GB
 
 
