@@ -27,7 +27,7 @@ def test(training_lang,
     trainer.build_model(max_length, batch_size, learning_rate, epochs, num_labels, tagset=tagset,
                         eval_batch_size=64)
     weights_path = checkpoints_path + training_lang + "/"
-    weights_filename = model_name + "_pos.hdf5"
+    weights_filename = short_model_name.replace("/", "_") + "_pos.hdf5"
     print("Using weights from", weights_path + weights_filename)
     trainer.model.load_weights(weights_path + weights_filename)
     # Checkpoint for best model weights

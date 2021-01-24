@@ -9,7 +9,7 @@ import pandas as pd
 import tensorflow as tf
 from IPython.utils.text import columnize
 from sklearn.metrics import classification_report, f1_score
-import tqdm
+from tqdm import tqdm
 import utils.utils as utils
 import utils.pos_utils as pos_utils
 import utils.model_utils as model_utils

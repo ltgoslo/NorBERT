@@ -11,4 +11,4 @@ if __name__ == "__main__":
         modelname = "ltgoslo/norbert"
     model = TFBertForTokenClassification.from_pretrained(modelname, from_pt=True)
     tokenizer = MBERT_Tokenizer_pos.from_pretrained(modelname, do_lower_case=False)
-
+    print(tokenizer)
