@@ -1,39 +1,44 @@
+#!/bin/env python3
+
 from transformers import BertTokenizer, XLMRobertaTokenizer
 from transformers.data.processors.utils import InputFeatures
 import tensorflow as tf
 import logging
 import glob
 
-def read_conll(input_file):
-        """Reads a conllu file."""
-        ids = []
-        texts = []
-        tags = []
-        #
-        text = []
-        tag = []
-        for line in open(input_file, encoding="utf-8"):
-            if line.startswith("# sent_id ="):
-                idx = line.strip().split()[-1]
-                ids.append(idx)
-            elif line.startswith("#"):
-                pass
-            elif line.strip() == "":
-                texts.append(text)
-                tags.append(tag)
-                text, tag = [], []
-            else:
-                try:
-                    splits = line.strip().split("\t")
-                    token = splits[1] # the token
-                    label = splits[3] # the UD POS Tag label
-                    text.append(token)
-                    tag.append(label)
-                except ValueError:
-                    print(idx)
-        return ids, texts, tags
 
-class MBERT_Tokenizer(BertTokenizer):
+def read_conll(input_file):
+    """Reads a conllu file."""
+    ids = []
+    texts = []
+    tags = []
+    #
+    text = []
+    tag = []
+    idx = None
+    for line in open(input_file, encoding="utf-8"):
+        if line.startswith("# sent_id ="):
+            idx = line.strip().split()[-1]
+            ids.append(idx)
+        elif line.startswith("#"):
+            pass
+        elif line.strip() == "":
+            texts.append(text)
+            tags.append(tag)
+            text, tag = [], []
+        else:
+            try:
+                splits = line.strip().split("\t")
+                token = splits[1]  # the token
+                label = splits[3]  # the UD POS Tag label
+                text.append(token)
+                tag.append(label)
+            except ValueError:
+                print(idx)
+    return ids, texts, tags
+
+
+class MBERTTokenizer(BertTokenizer):
     def subword_tokenize(self, tokens, labels):
         # This propogates the label over any subwords that
         # are created by the byte-pair tokenization for training
@@ -51,7 +56,8 @@ class MBERT_Tokenizer(BertTokenizer):
                 idx_map.append(ix)
         return split_tokens, split_labels, idx_map
 
-class XLMR_Tokenizer(XLMRobertaTokenizer):
+
+class XLMRTokenizer(XLMRobertaTokenizer):
     def subword_tokenize(self, tokens, labels):
         # This propogates the label over any subwords that
         # are created by the byte-pair tokenization for training
@@ -69,19 +75,20 @@ class XLMR_Tokenizer(XLMRobertaTokenizer):
                 idx_map.append(ix)
         return split_tokens, split_labels, idx_map
 
+
 def bert_convert_examples_to_tf_dataset(examples, tokenizer, tagset, max_length):
-    features = [] # -> will hold InputFeatures to be converted later
+    features = []  # -> will hold InputFeatures to be converted later
 
     for e in examples:
         tokens = e["tokens"]
         labels = e["tags"]
-        label_map = {label: i for i, label in enumerate(tagset)} # Tags to indexes
+        label_map = {label: i for i, label in enumerate(tagset)}  # Tags to indexes
 
         # Tokenize subwords and propagate labels
         split_tokens, split_labels, idx_map = tokenizer.subword_tokenize(tokens, labels)
-        #print(split_tokens)
-        #print(split_labels)
-        #print(idx_map)
+        # print(split_tokens)
+        # print(split_labels)
+        # print(idx_map)
 
         # Create features
         input_ids = tokenizer.convert_tokens_to_ids(split_tokens)
@@ -127,13 +134,14 @@ def bert_convert_examples_to_tf_dataset(examples, tokenizer, tagset, max_length)
         ),
     )
 
+
 def roberta_convert_examples_to_tf_dataset(examples, tokenizer, tagset, max_length):
-    features = [] # -> will hold InputFeatures to be converted later
+    features = []  # -> will hold InputFeatures to be converted later
 
     for e in examples:
         tokens = e["tokens"]
         labels = e["tags"]
-        label_map = {label: i for i, label in enumerate(tagset)} # Tags to indexes
+        label_map = {label: i for i, label in enumerate(tagset)}  # Tags to indexes
 
         # Tokenize subwords and propagate labels
         split_tokens, split_labels, idx_map = tokenizer.subword_tokenize(tokens, labels)
@@ -178,13 +186,17 @@ def roberta_convert_examples_to_tf_dataset(examples, tokenizer, tagset, max_leng
         ),
     )
 
+
 def load_dataset(lang_path, tokenizer, max_length, tagset, dataset_name="test"):
     """Loads conllu file, returns a list of dictionaries (one for each sentence) and a TF dataset"""
     logging.getLogger("transformers.tokenization_utils_base").setLevel(logging.ERROR)
     data = read_conll(glob.glob(lang_path + "/*{}.conllu".format(dataset_name.split("_")[0]))[0])
-    examples = [{"id": sent_id, "tokens": tokens, "tags": tags} for sent_id, tokens, tags in zip(data[0], data[1], data[2])]
+    examples = [{"id": sent_id, "tokens": tokens, "tags": tags} for sent_id, tokens, tags in
+                zip(data[0], data[1], data[2])]
     # In case some example is over max length
-    examples = [example for example in examples if len(tokenizer.subword_tokenize(example["tokens"], example["tags"])[0]) <= max_length]
-    dataset = bert_convert_examples_to_tf_dataset(examples=examples, tokenizer=tokenizer, tagset=tagset, max_length=max_length)
+    examples = [example for example in examples if len(
+        tokenizer.subword_tokenize(example["tokens"], example["tags"])[0]) <= max_length]
+    dataset = bert_convert_examples_to_tf_dataset(examples=examples, tokenizer=tokenizer,
+                                                  tagset=tagset, max_length=max_length)
     return examples, dataset
     # This loops 3 times over the same data, including the convert to TF, could it be done in one?

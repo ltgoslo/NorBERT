@@ -1,12 +1,10 @@
 #!/bin/env python3
-#! coding: utf-8
 
+import datetime
 import json
 import sys
-import datetime
 import matplotlib.pyplot as plt
-from matplotlib.dates import DayLocator, HourLocator, DateFormatter, drange
-import numpy as np
+from matplotlib.dates import DayLocator, HourLocator, DateFormatter
 
 timestamps = []
 mlm = []
@@ -28,7 +26,7 @@ for line in sys.stdin:
         sentence_loss = data["data"]["nsp_loss"]
         total_loss = data["data"]["total_loss"]
         timestamp = datetime.datetime.strptime(data["datetime"], "%Y-%m-%d %H:%M:%S.%f")
-    except:
+    except KeyError:
         cc += 1
         continue
     mlm.append(lm_loss)
@@ -55,4 +53,4 @@ plt.grid(axis='y')
 plt.title("NorBERT losses")
 plt.ylabel('Loss')
 plt.legend(loc='best')
-plt.savefig(sys.argv[1], dpi=300,  bbox_inches='tight')
+plt.savefig(sys.argv[1], dpi=300, bbox_inches='tight')

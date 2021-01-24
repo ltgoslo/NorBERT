@@ -15,7 +15,7 @@ import IPython
 
 import sys
 sys.path.append("..")
-from data_preparation.data_preparation_pos import MBERT_Tokenizer, XLMR_Tokenizer, bert_convert_examples_to_tf_dataset, read_conll
+from data_preparation.data_preparation_pos import MBERTTokenizer, XLMR_Tokenizer, bert_convert_examples_to_tf_dataset, read_conll
 import utils.utils as utils
 import utils.pos_utils as pos_utils
 import fine_tuning

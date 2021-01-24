@@ -1,46 +1,41 @@
+#!/bin/env python3
+
 import glob
-from IPython.utils.text import columnize
-from tqdm.notebook import tqdm
 import os
-import sys
+import time
+from datetime import timedelta
 import numpy as np
 import pandas as pd
-import matplotlib.pyplot as plt
-#import seaborn as sns
-import time
 import tensorflow as tf
-from datetime import timedelta
+from IPython.utils.text import columnize
 from sklearn.metrics import classification_report, f1_score
-from IPython.display import clear_output
-sys.path.append("..")
+from tqdm.notebook import tqdm
 import utils.utils as utils
 import utils.pos_utils as pos_utils
 import utils.model_utils as model_utils
 import data_preparation.data_preparation_pos as data_preparation_pos
 import data_preparation.data_preparation_sentiment as data_preparation_sentiment
-from data_preparation.data_preparation_pos import MBERT_Tokenizer as MBERT_Tokenizer_pos
-
-
+from data_preparation.data_preparation_pos import MBERTTokenizer
 from transformers import (TFBertForSequenceClassification, BertTokenizer,
-                         TFXLMRobertaForSequenceClassification, XLMRobertaTokenizer,
-                         TFBertForTokenClassification, TFXLMRobertaForTokenClassification)
+                          TFBertForTokenClassification)
 
 metric_names = {"pos": "Accuracy", "sentiment": "Macro F1"}
 
+
 def is_trainable(lang, data_path, task):
     code_dicts = utils.make_lang_code_dicts()
-    code_to_name = code_dicts["code_to_name"]
     name_to_code = code_dicts["name_to_code"]
     extension = {"pos": "conllu", "sentiment": "csv"}
 
     for dataset in ["train", "dev"]:
-        if not glob.glob(data_path + name_to_code[lang] + "/*{}.{}".format(dataset, extension[task])):
+        if not glob.glob(
+                data_path + name_to_code[lang] + "/*{}.{}".format(dataset, extension[task])):
             return False
     return True
 
+
 def get_global_training_state(data_path, short_model_name, experiment, checkpoints_path):
     code_dicts = utils.make_lang_code_dicts()
-    code_to_name = code_dicts["code_to_name"]
     name_to_code = code_dicts["name_to_code"]
 
     # Infer task from data path
@@ -67,7 +62,8 @@ def get_global_training_state(data_path, short_model_name, experiment, checkpoin
             continue
         # Check if there are train and dev sets available
         elif is_trainable(lang, data_path, task):
-            if glob.glob(checkpoints_path + "{}/{}_{}.hdf5".format(name_to_code[lang], model_name, task)):
+            if glob.glob(checkpoints_path + "{}/{}_{}.hdf5".format(name_to_code[lang], model_name,
+                                                                   task)):
                 trained_langs.append(lang)
             else:
                 remaining_langs.append(lang)
@@ -94,6 +90,7 @@ def get_global_training_state(data_path, short_model_name, experiment, checkpoin
 
     return training_lang
 
+
 class Trainer:
     def __init__(self, training_lang, data_path, task, model_name, use_class_weights=False):
         score_functions = {"pos": self.get_score_pos, "sentiment": self.get_score_sentiment}
@@ -111,26 +108,22 @@ class Trainer:
         # Model names
         self.model_name = model_name
 
-        if "norbert" in model_name:
-            self.save_model_name = "norbert"
-        elif "mbert" in model_name:
-            self.save_model_name = "mbert"
-        else:
-            self.save_model_name = model_name
-
+        self.save_model_name = model_name
+        print(f"Our model name: {self.model_name}")
 
     def build_model(self, max_length, train_batch_size, learning_rate, epochs, num_labels,
-                    tagset=None, gpu_growth=True, eval_batch_size=32):
-        #if gpu_growth:
-        #    model_utils.set_tf_memory_growth()
+                    tagset=None, eval_batch_size=32):
         if self.task == "pos":
-            self.model = TFBertForTokenClassification.from_pretrained(self.model_name, num_labels=num_labels, from_pt=True)
-            self.tokenizer = MBERT_Tokenizer_pos.from_pretrained(self.model_name, do_lower_case=False)
+            self.model = TFBertForTokenClassification.from_pretrained(self.model_name,
+                                                                      num_labels=num_labels,
+                                                                      from_pt=True)
+            self.tokenizer = MBERTTokenizer.from_pretrained(self.model_name, do_lower_case=False)
         else:
-            self.model = TFBertForSequenceClassification.from_pretrained(self.model_name, num_labels=num_labels, from_pt=True)
+            self.model = TFBertForSequenceClassification.from_pretrained(self.model_name,
+                                                                         num_labels=num_labels,
+                                                                         from_pt=True)
             self.tokenizer = BertTokenizer.from_pretrained(self.model_name, do_lower_case=False)
-        #self.model, self.tokenizer = model_utils.create_model(self.short_model_name, self.task, num_labels)
-        self.model = model_utils.compile_model(self.model, self.task, learning_rate)
+        self.model = model_utils.compile_model(self.model, learning_rate)
         print("Successfully built", self.model_name)
         self.max_length = max_length
         self.train_batch_size = train_batch_size
@@ -153,7 +146,8 @@ class Trainer:
         else:
             suffix = ""
         self.suffix = suffix
-        self.checkpoint_filepath = self.checkpoint_dir + self.save_model_name + "_{}_checkpoint{}.hdf5".format(self.task, suffix)
+        self.checkpoint_filepath = \
+            self.checkpoint_dir + self.save_model_name + f"_{self.task}_checkpoint{suffix}.hdf5"
         print("Checkpoint file:", self.checkpoint_filepath)
         self.temp_weights_filepath = self.checkpoint_dir + self.save_model_name + "_temp.hdf5"
         print("Temp weights file:", self.temp_weights_filepath)
@@ -167,25 +161,31 @@ class Trainer:
         acc_lengths = 0
 
         for i in range(len(data)):
-            self.eval_info[dataset_name]["all_words"].extend(data[i]["tokens"]) # Full words
-            self.eval_info[dataset_name]["all_labels"].extend([self.label_map[label] for label in data[i]["tags"]])
+            self.eval_info[dataset_name]["all_words"].extend(data[i]["tokens"])  # Full words
+            self.eval_info[dataset_name]["all_labels"].extend(
+                [self.label_map[label] for label in data[i]["tags"]])
             _, _, idx_map = self.tokenizer.subword_tokenize(data[i]["tokens"], data[i]["tags"])
             # Examples always start at a multiple of max_length
             # Where they end depends on the number of resulting subwords
             example_start = i * self.max_length
             example_end = example_start + len(idx_map)
-            self.eval_info[dataset_name]["real_tokens"].extend(np.arange(example_start, example_end, dtype=int))
+            self.eval_info[dataset_name]["real_tokens"].extend(
+                np.arange(example_start, example_end, dtype=int))
             # Get subword starts and ends
-            sub_ids, sub_starts, sub_lengths = np.unique(idx_map, return_counts=True, return_index=True)
+            sub_ids, sub_starts, sub_lengths = np.unique(idx_map, return_counts=True,
+                                                         return_index=True)
             sub_starts = sub_starts[sub_lengths > 1] + acc_lengths
             sub_ends = sub_starts + sub_lengths[sub_lengths > 1]
-            self.eval_info[dataset_name]["subword_locs"].extend(np.array([sub_starts, sub_ends]).T.tolist())
+            self.eval_info[dataset_name]["subword_locs"].extend(
+                np.array([sub_starts, sub_ends]).T.tolist())
             acc_lengths += len(idx_map)
 
     def prepare_data(self, limit=None):
         datasets = {}
         dataset_names = ["train", "dev", "train_eval", "test"]
 
+        dataset = None
+        data = None
         for dataset_name in tqdm(dataset_names):
             # Load plain data and TF dataset
             if self.task == "pos":
@@ -218,7 +218,8 @@ class Trainer:
 
         self.train_dataset, self.train_batches, self.train_data = datasets["train"]
         self.dev_dataset, self.dev_batches, self.dev_data = datasets["dev"]
-        self.train_eval_dataset, self.train_eval_batches, self.train_eval_data = datasets["train_eval"]
+        self.train_eval_dataset, self.train_eval_batches, self.train_eval_data = datasets[
+            "train_eval"]
 
     def calc_class_weights(self):
         """
@@ -241,11 +242,12 @@ class Trainer:
         self.model.load_weights(self.temp_weights_filepath)
 
     def handle_oom(self, f, *args, **kwargs):
+        output = None
         while True:
             try:
                 output = f(*args, **kwargs)
             except tf.errors.ResourceExhaustedError:
-                print("\nOut of memory, retrying...")
+                print("Out of memory, retrying...")
                 if f == self.model.fit:
                     # Otherwise it will see some data more than once
                     print("Resetting to weights at epoch start")
@@ -257,8 +259,10 @@ class Trainer:
     def show_time(self, epoch):
         elapsed = time.time() - self.start_time
         print("{:<25}{:<25}".format("Elapsed:", str(timedelta(seconds=np.round(elapsed)))))
-        remaining = elapsed / (epoch + 1 - self.history.start_epoch) * (self.epochs + self.history.start_epoch - (epoch + 1))
-        print("{:<25}{:<25}".format("Estimated remaining:", str(timedelta(seconds=np.round(remaining)))))
+        remaining = elapsed / (epoch + 1 - self.history.start_epoch) * (
+                self.epochs + self.history.start_epoch - (epoch + 1))
+        print("{:<25}{:<25}".format("Estimated remaining:",
+                                    str(timedelta(seconds=np.round(remaining)))))
         return elapsed, remaining
 
     def show_progress_bar(self, epoch):
@@ -266,26 +270,29 @@ class Trainer:
                    ncols=750, bar_format="{l_bar}{bar}{n}/{total}")
         bar.update(epoch - self.history.start_epoch + 1)
         bar.refresh()
-        #tqdm.write("") # So the bar appears
+        # tqdm.write("") # So the bar appears
 
-    def get_score_pos(self, preds, data, dataset_name):
-        filtered_preds = preds[0].argmax(axis=-1).flatten()[self.eval_info[dataset_name]["real_tokens"]].tolist()
-        filtered_logits = preds[0].reshape((preds[0].shape[0]*preds[0].shape[1], preds[0].shape[2]))[self.eval_info[dataset_name]["real_tokens"]]
+    def get_score_pos(self, preds, dataset_name):
+        filtered_preds = preds[0].argmax(axis=-1).flatten()[
+            self.eval_info[dataset_name]["real_tokens"]].tolist()
+        filtered_logits = \
+            preds[0].reshape((preds[0].shape[0] * preds[0].shape[1], preds[0].shape[2]))[
+                self.eval_info[dataset_name]["real_tokens"]]
         new_preds = pos_utils.reconstruct_subwords(
             self.eval_info[dataset_name]["subword_locs"], filtered_preds, filtered_logits
         )
-        print(len(new_preds))
-        print(len(self.eval_info[dataset_name]["all_labels"]))
         assert len(new_preds) == len(self.eval_info[dataset_name]["all_labels"])
         return (np.array(self.eval_info[dataset_name]["all_labels"]) == np.array(new_preds)).mean()
 
-    def get_score_sentiment(self, preds, data, dataset_name=None):
+    @staticmethod
+    def get_score_sentiment(preds, data):
         return f1_score(data["sentiment"].values, preds[0].argmax(axis=-1),
                         average="macro")
 
     def save_checkpoint(self, dev_score):
-        print("\nDev score improved from", self.history.best_dev_score, "to", dev_score,
-              ",\nsaving to " + self.checkpoint_filepath)
+        print(
+            f"Dev score improved from {self.history.best_dev_score:.4f} "
+            f"to {dev_score:.4f}, saving to {self.checkpoint_filepath}")
         self.model.save_weights(self.checkpoint_filepath)
 
     def train(self):
@@ -297,7 +304,7 @@ class Trainer:
         self.start_time = time.time()
 
         for epoch in range(self.history.start_epoch, self.history.start_epoch + self.epochs):
-            print("\nEpoch", epoch)
+            print(f"Epoch: {epoch}")
             epoch_start = time.time()
 
             # Fit and evaluate
@@ -307,14 +314,14 @@ class Trainer:
             loss = hist.history["loss"][0]
             print("Saving temp weights...")
             self.model.save_weights(self.temp_weights_filepath)
-            train_preds = self.handle_oom(self.model.predict, self.train_eval_dataset,steps=self.train_eval_batches, verbose=1)
+            train_preds = self.handle_oom(self.model.predict, self.train_eval_dataset,
+                                          steps=self.train_eval_batches, verbose=1)
             dev_preds = self.handle_oom(self.model.predict, self.dev_dataset,
                                         steps=self.dev_batches, verbose=1)
 
             # Show progress
-            clear_output()
-            elapsed, remaining = self.show_time(epoch)
-            self.show_progress_bar(epoch)
+            _ = self.show_time(epoch)
+            # self.show_progress_bar(epoch)
             epoch_duration = time.time() - epoch_start
 
             # Calculate scores
@@ -331,7 +338,7 @@ class Trainer:
             # Update and show history
             self.history.update_hist(epoch, loss, train_score, dev_score, epoch_duration)
             self.history.show_hist()
-            #self.history.plot()
+            # self.history.plot()
 
     def make_definitive(self):
         rename_files = [self.checkpoint_filepath, self.history.log_filepath,
@@ -347,13 +354,17 @@ class Trainer:
                    "learning_rate", "epochs", "num_labels", "checkpoint_filepath"]
         return {k: v for k, v in self.__dict__.items() if k in include}
 
+
 class History:
     def __init__(self, trainer):
         # Dirs and files
         self.logs_dir = trainer.checkpoint_dir + "logs/"
-        self.log_filepath = self.logs_dir + "{}_{}_checkpoint_log{}.xlsx".format(trainer.save_model_name, trainer.task, trainer.suffix)
-        self.checkpoint_params_filepath = self.logs_dir + "{}_{}_checkpoint_params{}.xlsx".format(trainer.save_model_name, trainer.task, trainer.suffix)
-        self.checkpoint_report_filepath = self.logs_dir + "{}_{}_checkpoint_report{}.xlsx".format(trainer.save_model_name, trainer.task, trainer.suffix)
+        self.log_filepath = self.logs_dir + "{}_{}_checkpoint_log{}.tsv".format(
+            trainer.save_model_name, trainer.task, trainer.suffix)
+        self.checkpoint_params_filepath = self.logs_dir + "{}_{}_checkpoint_params{}.tsv".format(
+            trainer.save_model_name, trainer.task, trainer.suffix)
+        self.checkpoint_report_filepath = self.logs_dir + "{}_{}_checkpoint_report{}.tsv".format(
+            trainer.save_model_name, trainer.task, trainer.suffix)
         if not os.path.isdir(self.logs_dir):
             os.makedirs(self.logs_dir)
 
@@ -375,9 +386,8 @@ class History:
         self.trainer_params = trainer.get_main_params()
 
     def load_from_checkpoint(self):
-        log = pd.read_excel(self.log_filepath)
+        log = pd.read_csv(self.log_filepath)
         end_index = log["dev_score"].argmax() + 1
-        index_best_dev_score = end_index - 1
         self.epoch_list = log["epoch"].values[:end_index].tolist()
         self.loss_list = log["loss"].values[:end_index].tolist()
         self.train_score_list = log["train_score"].values[:end_index].tolist()
@@ -386,9 +396,10 @@ class History:
         self.best_dev_score = self.dev_score_list[-1]
         self.best_dev_epoch = self.epoch_list[-1]
         self.start_epoch = self.epoch_list[-1] + 1
-        print("Checkpoint dev score:", self.best_dev_score)
+        print(f"Checkpoint dev score: {self.best_dev_score}")
 
-    def convert_time(self, t):
+    @staticmethod
+    def convert_time(t):
         return str(timedelta(seconds=np.round(t)))
 
     def update_best_dev_score(self, train_score, dev_score, epoch, epoch_duration, dev_preds):
@@ -403,14 +414,14 @@ class History:
         params = {**self.trainer_params,
                   **{"epoch": epoch, "train_score": train_score, "dev_score": dev_score,
                      "total_training_time": self.best_dev_total_time}}
-        pd.DataFrame.from_dict(params, orient="index").to_excel(
+        pd.DataFrame.from_dict(params, orient="index").to_csv(
             self.checkpoint_params_filepath, index=False
         )
         # Classification report for sentiment
         if self.task == "sentiment":
             report = classification_report(self.dev_data["sentiment"].values,
                                            dev_preds[0].argmax(axis=-1), output_dict=True)
-            pd.DataFrame.from_dict(report).transpose().to_excel(
+            pd.DataFrame.from_dict(report).transpose().to_csv(
                 self.checkpoint_report_filepath
             )
 
@@ -431,42 +442,24 @@ class History:
                       "dev_score": self.dev_score_list,
                       "total_time": self.total_time_list,
                       "total_time_h:m:s": [self.convert_time(t) for t in self.total_time_list]}
-                      ).to_excel(self.log_filepath, index=False)
+                     ).to_csv(self.log_filepath, index=False, sep="\t")
 
     def show_hist(self):
-        print("\nHistory:\n")
-        print("Best dev score so far: {:.3f}\n".format(self.best_dev_score))
+        print("History:")
+        print("Best dev score so far: {:.3f}".format(self.best_dev_score))
         print("{:<20}{:<20}{:<20}{:<20}".format("Epoch",
-                                          "Loss",
-                                          "Train score",
-                                          "Dev score"))
+                                                "Loss",
+                                                "Train score",
+                                                "Dev score"))
         for epoch in self.epoch_list:
-            #if epoch == self.best_dev_epoch:
+            # if epoch == self.best_dev_epoch:
             #    bold_code = ("\033[1m", "\033[0m") # Add bold to row where best dev score was found
-            #else:
+            # else:
             #    bold_code = ("", "")
             print("{:<20}{:<20.3f}{:<20.3f}{:<20.3f}".format(
-                  self.epoch_list[epoch], self.loss_list[epoch],
-                  self.train_score_list[epoch],
-                  self.dev_score_list[epoch]))
-
-    # def plot(self):
-    #     sns.set()
-    #     sns.set_style({"axes.linewidth": 1, "axes.edgecolor": "black",
-    #                    "xtick.bottom": True, "ytick.left": True})
-    #     fig, ax = plt.subplots(1, 2, figsize=(12,4))
-    #     plt.subplots_adjust(wspace=0.15)
-    #     ax[0].plot(self.epoch_list, self.loss_list)
-    #     ax[0].set_xlabel("Epoch")
-    #     ax[0].set_ylabel("Loss")
-    #     #ax[1].plot(self.epoch_list, self.train_score_list)
-    #     ax[1].plot(self.epoch_list, self.dev_score_list)
-    #     ax[1].set_xlabel("Epoch")
-    #     ax[1].set_ylabel(self.metric_name)
-    #     ax[1].legend(["Train", "Dev"])
-    #     sns.despine()
-    #     plt.show()
-    #     plt.close()
+                self.epoch_list[epoch], self.loss_list[epoch],
+                self.train_score_list[epoch],
+                self.dev_score_list[epoch]))
 
     def get_best_dev(self):
         """Score, epoch, time"""

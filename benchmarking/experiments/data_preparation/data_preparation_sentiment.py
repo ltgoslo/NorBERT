@@ -1,3 +1,5 @@
+#!/bin/env python3
+
 import tensorflow as tf
 import logging
 import pandas as pd
@@ -5,15 +7,17 @@ import numpy as np
 from tqdm.notebook import tqdm
 from transformers.data.processors.utils import InputFeatures
 
+
 class Example:
     def __init__(self, text, category_index):
         self.text = text
         self.category_index = category_index
 
+
 def bert_convert_examples_to_tf_dataset(
-    examples,
-    tokenizer,
-    max_length=64,
+        examples,
+        tokenizer,
+        max_length=64,
 ):
     """
     Loads data into a tf.data.Dataset for finetuning a given model.
@@ -26,30 +30,33 @@ def bert_convert_examples_to_tf_dataset(
     Returns:
         a ``tf.data.Dataset`` containing the condensed features of the provided sentences
     """
-    features = [] # -> will hold InputFeatures to be converted later
+    features = []  # -> will hold InputFeatures to be converted later
 
     for e in examples:
         # Documentation is really strong for this method, so please take a look at it
         input_dict = tokenizer.encode_plus(
             e.text,
             add_special_tokens=True,
-            max_length=max_length, # truncates if len(s) > max_length
+            max_length=max_length,  # truncates if len(s) > max_length
             return_token_type_ids=True,
             return_attention_mask=True,
-            pad_to_max_length=True, # pads to the right by default
+            pad_to_max_length=True,  # pads to the right by default
             truncation=True
         )
 
         # input ids = token indices in the tokenizer's internal dict
         # token_type_ids = binary mask identifying different sequences in the model
-        # attention_mask = binary mask indicating the positions of padded tokens so the model does not attend to them
+        # attention_mask = binary mask indicating the positions of padded tokens
+        # so the model does not attend to them
 
         input_ids, token_type_ids, attention_mask = (input_dict["input_ids"],
-            input_dict["token_type_ids"], input_dict['attention_mask'])
+                                                     input_dict["token_type_ids"],
+                                                     input_dict['attention_mask'])
 
         features.append(
             InputFeatures(
-                input_ids=input_ids, attention_mask=attention_mask, token_type_ids=token_type_ids, label=e.category_index
+                input_ids=input_ids, attention_mask=attention_mask, token_type_ids=token_type_ids,
+                label=e.category_index
             )
         )
 
@@ -77,10 +84,11 @@ def bert_convert_examples_to_tf_dataset(
         ),
     )
 
+
 def roberta_convert_examples_to_tf_dataset(
-    examples,
-    tokenizer,
-    max_length=64,
+        examples,
+        tokenizer,
+        max_length=64,
 ):
     """
     Loads data into a tf.data.Dataset for finetuning a given model.
@@ -93,22 +101,23 @@ def roberta_convert_examples_to_tf_dataset(
     Returns:
         a ``tf.data.Dataset`` containing the condensed features of the provided sentences
     """
-    features = [] # -> will hold InputFeatures to be converted later
+    features = []  # -> will hold InputFeatures to be converted later
 
     for e in examples:
         # Documentation is really strong for this method, so please take a look at it
         input_dict = tokenizer.encode_plus(
             e.text,
             add_special_tokens=True,
-            max_length=max_length, # truncates if len(s) > max_length
+            max_length=max_length,  # truncates if len(s) > max_length
             return_attention_mask=True,
-            pad_to_max_length=True, # pads to the right by default
+            pad_to_max_length=True,  # pads to the right by default
             truncation=True
         )
 
         # input ids = token indices in the tokenizer's internal dict
         # token_type_ids = binary mask identifying different sequences in the model
-        # attention_mask = binary mask indicating the positions of padded tokens so the model does not attend to them
+        # attention_mask = binary mask indicating the positions of padded tokens
+        # so the model does not attend to them
 
         input_ids, attention_mask = (input_dict["input_ids"], input_dict['attention_mask'])
 
@@ -140,6 +149,7 @@ def roberta_convert_examples_to_tf_dataset(
         ),
     )
 
+
 def load_dataset(lang_path, tokenizer, max_length, balanced=False,
                  dataset_name="test", limit=None):
     logging.getLogger("transformers.tokenization_utils_base").setLevel(logging.ERROR)
@@ -147,11 +157,11 @@ def load_dataset(lang_path, tokenizer, max_length, balanced=False,
     # Read data
     df = pd.read_csv(lang_path + "/{}.csv".format(dataset_name.split("_")[0]), header=None)
     df.columns = ["sentiment", "review"]
-    df["sentiment"] = pd.to_numeric(df["sentiment"]) # Sometimes label gets read as string
+    df["sentiment"] = pd.to_numeric(df["sentiment"])  # Sometimes label gets read as string
 
     # Remove excessively long examples
     lengths = df["review"].progress_apply(lambda x: len(tokenizer.encode(x)))
-    df = df[lengths <= max_length].reset_index(drop=True) # Remove long examples
+    df = df[lengths <= max_length].reset_index(drop=True)  # Remove long examples
 
     # Balance classes
     if dataset_name == "train" and balanced:
@@ -169,5 +179,6 @@ def load_dataset(lang_path, tokenizer, max_length, balanced=False,
 
     # Convert to TF dataset
     dataset = bert_convert_examples_to_tf_dataset(
-                [(Example(text=text, category_index=label)) for label, text in df.values], tokenizer, max_length=max_length)
+        [(Example(text=text, category_index=label)) for label, text in df.values], tokenizer,
+        max_length=max_length)
     return df, dataset

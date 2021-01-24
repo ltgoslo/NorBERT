@@ -7,7 +7,7 @@ import stanza
 # stanza.download("no")
 # stanza.download("nn")
 
-lang = sys.argv[1] # State the segmenter model (no or nn)
+lang = sys.argv[1]  # State the segmenter model (no or nn)
 
 nlp = stanza.Pipeline(lang, processors="tokenize")
 

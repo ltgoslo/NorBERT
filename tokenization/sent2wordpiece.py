@@ -1,19 +1,17 @@
 #!/usr/bin/env python3
 
-import sys
-import os
-import re
 import json
-
+import re
+import sys
 
 # SentencePiece boundary marker
-SENTPIECE_BOUNDARY = '▁'    # (U+2581)
+SENTPIECE_BOUNDARY = '▁'  # (U+2581)
 
 # WordPiece continuation marker
 WORDPIECE_CONTINUATION = '##'
 
 # SentencePiece special tokens, filtered out by default
-SENTPIECE_SPECIAL = set(['<unk>', '<s>', '</s>'])
+SENTPIECE_SPECIAL = {'<unk>', '<s>', '</s>'}
 
 # BERT special tokens, added in by default
 BERT_SPECIAL = ['[PAD]', '[UNK]', '[CLS]', '[SEP]', '[MASK]']
@@ -45,7 +43,7 @@ def argparser():
 def load_vocab(path):
     vocab, seen = [], set()
     if path.endswith(".json"):
-        data = json.load(open(path))["model"]["vocab"] # To read the new Tokenizers format
+        data = json.load(open(path))["model"]["vocab"]  # To read the new Tokenizers format
         for nr, piece in enumerate(data):
             if piece in seen:
                 raise ValueError('duplicate {} on line {} in {}'.format(piece, nr, path))
@@ -53,15 +51,15 @@ def load_vocab(path):
             seen.add(piece)
     else:
         with open(path) as f:
-            for ln, l in enumerate(f, start=1):
-                l = l.rstrip('\n')
-                m = SENTPIECE_LINE_RE.match(l)
+            for ln, line in enumerate(f, start=1):
+                line = line.rstrip('\n')
+                m = SENTPIECE_LINE_RE.match(line)
                 if not m:
-                    raise ValueError('line {} in {}: "{}"'.format(ln, path, l))
+                    raise ValueError('line {} in {}: "{}"'.format(ln, path, line))
                 piece, _ = m.groups()
                 if piece in seen:
                     raise ValueError('duplicate {} on line {} in {}: "{}"'.format(
-                        piece, ln, path, l))
+                        piece, ln, path, line))
                 vocab.append(piece)
                 seen.add(piece)
     print('read {} from {}'.format(len(vocab), path), file=sys.stderr)
@@ -79,9 +77,9 @@ def convert_vocab(vocab):
     converted = []
     for v in vocab:
         if v.startswith(SENTPIECE_BOUNDARY):
-            converted.append(v[len(SENTPIECE_BOUNDARY):])    # strip marker
+            converted.append(v[len(SENTPIECE_BOUNDARY):])  # strip marker
         else:
-            converted.append(WORDPIECE_CONTINUATION+v)    # add marker
+            converted.append(WORDPIECE_CONTINUATION + v)  # add marker
     converted = [t for t in converted if t and not t.isspace()]
     return converted
 

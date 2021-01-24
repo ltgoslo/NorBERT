@@ -1,12 +1,10 @@
+#!/bin/env python3
+
 import tensorflow as tf
 from transformers import (TFBertForSequenceClassification, BertTokenizer,
-                         TFXLMRobertaForSequenceClassification, XLMRobertaTokenizer,
-                         TFBertForTokenClassification, TFXLMRobertaForTokenClassification)
-
-import sys
-sys.path.append("..")
-from data_preparation.data_preparation_pos import MBERT_Tokenizer, XLMR_Tokenizer
-from utils.pos_utils import ignore_acc
+                          TFXLMRobertaForSequenceClassification, XLMRobertaTokenizer,
+                          TFBertForTokenClassification, TFXLMRobertaForTokenClassification)
+from data_preparation.data_preparation_pos import MBERTTokenizer, XLMRTokenizer
 
 models = {
     "mbert": {
@@ -21,18 +19,20 @@ models = {
 
 tokenizers = {
     "mbert": {
-        "pos": MBERT_Tokenizer.from_pretrained,
+        "pos": MBERTTokenizer.from_pretrained,
         "sentiment": BertTokenizer.from_pretrained
     },
     "xlm-roberta": {
-        "pos": XLMR_Tokenizer.from_pretrained,
+        "pos": XLMRTokenizer.from_pretrained,
         "sentiment": XLMRobertaTokenizer.from_pretrained
     }
 }
 
+
 def set_tf_memory_growth():
     gpu_devices = tf.config.experimental.list_physical_devices('GPU')
     tf.config.experimental.set_memory_growth(gpu_devices[0], True)
+
 
 def get_full_model_names(short_model_name):
     d = {
@@ -49,19 +49,23 @@ def get_full_model_names(short_model_name):
         model_name = d[short_model_name]
         return model_name, d[model_name]
 
+
 def create_model(short_model_name, task, num_labels):
     return (models[short_model_name][task](get_full_model_names(short_model_name)[1],
-                                          num_labels=num_labels),
+                                           num_labels=num_labels),
             get_tokenizer(short_model_name, task))
+
 
 def get_tokenizer(short_model_name, task):
     return tokenizers[short_model_name][task](get_full_model_names(short_model_name)[1])
 
-def compile_model(model, task, learning_rate):
+
+def compile_model(model, learning_rate):
     optimizer = tf.keras.optimizers.Adam(learning_rate=learning_rate)
     loss = tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True)
     model.compile(optimizer=optimizer, loss=loss)
     return model
+
 
 def make_batches(dataset, batch_size, repetitions, shuffle=True):
     if shuffle:
