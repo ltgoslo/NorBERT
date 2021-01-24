@@ -4,7 +4,7 @@ import tensorflow as tf
 import logging
 import pandas as pd
 import numpy as np
-from tqdm.notebook import tqdm
+from tqdm import tqdm
 from transformers.data.processors.utils import InputFeatures
 
 
