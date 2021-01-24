@@ -9,7 +9,7 @@ import pandas as pd
 import tensorflow as tf
 from IPython.utils.text import columnize
 from sklearn.metrics import classification_report, f1_score
-from tqdm.notebook import tqdm
+import tqdm
 import utils.utils as utils
 import utils.pos_utils as pos_utils
 import utils.model_utils as model_utils
@@ -108,8 +108,7 @@ class Trainer:
         # Model names
         self.model_name = model_name
 
-        self.save_model_name = model_name
-        print(f"Our model name: {self.model_name}")
+        self.save_model_name = model_name.replace("/", "_")
 
     def build_model(self, max_length, train_batch_size, learning_rate, epochs, num_labels,
                     tagset=None, eval_batch_size=32):
@@ -272,7 +271,8 @@ class Trainer:
         bar.refresh()
         # tqdm.write("") # So the bar appears
 
-    def get_score_pos(self, preds, dataset_name):
+    def get_score_pos(self, preds, train_eval_data, dataset_name):
+        # FIXME: get rid of this redundant "train eval_data" here
         filtered_preds = preds[0].argmax(axis=-1).flatten()[
             self.eval_info[dataset_name]["real_tokens"]].tolist()
         filtered_logits = \
@@ -321,7 +321,6 @@ class Trainer:
 
             # Show progress
             _ = self.show_time(epoch)
-            # self.show_progress_bar(epoch)
             epoch_duration = time.time() - epoch_start
 
             # Calculate scores

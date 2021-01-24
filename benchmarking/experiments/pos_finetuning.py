@@ -53,7 +53,7 @@ def test(training_lang,
 
 def train(training_lang,
           short_model_name="ltgoslo/norbert",
-          epochs=5, data_path=None, task="pos"):
+          epochs=10, data_path=None, task="pos"):
     checkpoints_path = "checkpoints/"
     #
     trainer = fine_tuning.Trainer(training_lang, data_path, task, short_model_name)
