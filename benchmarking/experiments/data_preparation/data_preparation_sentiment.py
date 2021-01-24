@@ -40,7 +40,7 @@ def bert_convert_examples_to_tf_dataset(
             max_length=max_length,  # truncates if len(s) > max_length
             return_token_type_ids=True,
             return_attention_mask=True,
-            pad_to_max_length=True,  # pads to the right by default
+            padding=True,  # pads to the right by default
             truncation=True
         )
 
