@@ -284,8 +284,8 @@ class Trainer:
         assert len(new_preds) == len(self.eval_info[dataset_name]["all_labels"])
         return (np.array(self.eval_info[dataset_name]["all_labels"]) == np.array(new_preds)).mean()
 
-    @staticmethod
-    def get_score_sentiment(preds, data):
+    def get_score_sentiment(self, preds, data, dataset_name=None):
+        # FIXME: get rid of this redundant "dataset_name" here
         return f1_score(data["sentiment"].values, preds[0].argmax(axis=-1),
                         average="macro")
 

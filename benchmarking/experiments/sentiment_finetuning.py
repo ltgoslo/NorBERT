@@ -1,3 +1,5 @@
+#!/bin/env python3
+
 import numpy as np
 import pandas as pd
 import glob
@@ -10,12 +12,9 @@ from transformers import (TFBertForSequenceClassification,
                           XLMRobertaTokenizer,
                           TFBertForTokenClassification,
                           TFXLMRobertaForTokenClassification)
-from tqdm.notebook import tqdm
-import IPython
-
+from tqdm import tqdm
 import sys
-sys.path.append("..")
-from data_preparation.data_preparation_pos import MBERTTokenizer, XLMR_Tokenizer, bert_convert_examples_to_tf_dataset, read_conll
+from data_preparation.data_preparation_pos import MBERTTokenizer, XLMRTokenizer, bert_convert_examples_to_tf_dataset, read_conll
 import utils.utils as utils
 import utils.pos_utils as pos_utils
 import fine_tuning
@@ -27,7 +26,7 @@ import argparse
 def test(training_lang,
          test_lang,
          split="test",
-         short_model_name="../checkpoints/norbert3/",
+         short_model_name="ltgoslo/norbert",
          model_name="norbert"):
     data_path = "../data/sentiment/"
     task = "sentiment"
@@ -42,7 +41,7 @@ def test(training_lang,
     # Model creation
     trainer.build_model(max_length, batch_size, learning_rate, epochs, num_labels, eval_batch_size=eval_batch_size)
     weights_path = "checkpoints/" + training_lang + "/"
-    weights_filename = model_name + "_sentiment.hdf5"
+    weights_filename = short_model_name.replace("/", "_") + "_sentiment.hdf5"
     trainer.model.load_weights(weights_path + weights_filename)
     # Checkpoint for best model weights
     test_lang_path = data_path + test_lang
@@ -58,7 +57,7 @@ def test(training_lang,
     return test_score
 
 def train(training_lang,
-          short_model_name="../checkpoints/norbert3/",
+          short_model_name="ltgoslo/norbert",
           use_class_weights=False,
           checkpoint=None):
     data_path = "../data/sentiment/"
@@ -71,7 +70,7 @@ def train(training_lang,
     max_length = 256
     batch_size = 8
     learning_rate = 2e-5
-    epochs = 20
+    epochs = 10
 
     # Model creation
     trainer.build_model(max_length, batch_size, learning_rate, epochs, num_labels=2, eval_batch_size=32)
@@ -148,7 +147,7 @@ def get_score_pos(preds, dataset_name, eval_info):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--model_name", default="norbert")
-    parser.add_argument("--short_model_name", default="../checkpoints/norbert3/")
+    parser.add_argument("--short_model_name", default="ltgoslo/norbert")
     parser.add_argument("--use_class_weights", action="store_true")
 
     args = parser.parse_args()
@@ -188,4 +187,4 @@ if __name__ == "__main__":
 
     print(table)
     print(table.to_latex(index=False, float_format="{0:.1f}".format))
-    table.to_csv("results/{}_sentiment.csv".format(model_name))
+    table.to_csv("results/{}_sentiment.tsv".format(model_name), sep="\t")
