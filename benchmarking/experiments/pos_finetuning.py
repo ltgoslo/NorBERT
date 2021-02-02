@@ -150,10 +150,11 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--model_name", default="norbert")
     parser.add_argument("--short_model_name", default="ltgoslo/norbert")
+    parser.add_argument("--training_language", default="nob")
 
     args = parser.parse_args()
 
-    training_language = "no"
+    training_language = args.training_language
     ud_data_path = "../data/ud/"
     run_name = args.model_name
     model_identifier = args.short_model_name
@@ -182,5 +183,5 @@ if __name__ == "__main__":
 
     print(table)
     print(table.to_latex(index=False, float_format="{0:.1f}".format))
-    table.to_csv("results/{}_pos.tsv".format(run_name), sep="\t")
-    print(f"Scores saved to results/{run_name}_pos.tsv")
+    table.to_csv(f"results/{training_language}_{run_name}_{current_task}.tsv", sep="\t")
+    print(f"Scores saved to results/{training_language}_{run_name}_{current_task}.tsv")
