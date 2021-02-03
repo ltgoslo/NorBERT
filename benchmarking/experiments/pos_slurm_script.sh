@@ -20,4 +20,4 @@ echo $MODEL_NAME
 echo $SHORT_MODEL_NAME
 echo $LANG
 
-python3 pos_finetuning.py --model_name "$MODEL_NAME" --short_model_name "$SHORT_MODEL_NAME" --training_language $LANG
+PYTHONHASHSEED=0 python3 pos_finetuning.py --model_name "$MODEL_NAME" --short_model_name "$SHORT_MODEL_NAME" --training_language $LANG

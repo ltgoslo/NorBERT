@@ -7,6 +7,7 @@ import os
 import time
 import numpy as np
 from simple_elmo import ElmoModel
+import tensrflow as tf
 from tensorflow.keras.callbacks import EarlyStopping
 from tensorflow.keras.layers import Dense, Dropout
 from tensorflow.keras.models import Sequential
@@ -14,6 +15,7 @@ from tensorflow.keras.utils import to_categorical
 import logging
 from sklearn.metrics import classification_report
 from utils.utils import read_conll
+import random as python_random
 
 
 def infer_embeddings(texts, contextualized):
@@ -39,6 +41,11 @@ def infer_embeddings(texts, contextualized):
 if __name__ == "__main__":
     logging.basicConfig(format="%(asctime)s : %(levelname)s : %(message)s", level=logging.INFO)
     logger = logging.getLogger(__name__)
+
+    # For reproducibility:
+    np.random.seed(42)
+    python_random.seed(42)
+    tf.random.set_seed(42)
 
     parser = argparse.ArgumentParser()
     arg = parser.add_argument

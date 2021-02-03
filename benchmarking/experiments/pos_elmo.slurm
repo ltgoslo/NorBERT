@@ -19,4 +19,4 @@ ELMO=${2} # /cluster/shared/nlpl/data/vectors/latest/211.zip
 echo $UD
 echo $ELMO
 
-python3 elmo_pos.py --input ${UD} --elmo ${ELMO}
+PYTHONHASHSEED=0 python3 elmo_pos.py --input ${UD} --elmo ${ELMO}

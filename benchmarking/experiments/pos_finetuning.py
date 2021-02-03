@@ -151,6 +151,7 @@ if __name__ == "__main__":
     parser.add_argument("--model_name", default="norbert")
     parser.add_argument("--short_model_name", default="ltgoslo/norbert")
     parser.add_argument("--training_language", default="nob")
+    parser.add_argument("--epochs", type=int, default=10)
 
     args = parser.parse_args()
 
@@ -162,7 +163,7 @@ if __name__ == "__main__":
 
     # Train models
     training_object = train(training_language, short_model_name=model_identifier,
-                            data_path=ud_data_path, task=current_task)
+                            data_path=ud_data_path, task=current_task, epochs=args.epochs)
 
     dev_score = test(training_language,
                      training_language,

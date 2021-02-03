@@ -16,11 +16,16 @@ import utils.model_utils as model_utils
 import data_preparation.data_preparation_pos as data_preparation_pos
 import data_preparation.data_preparation_sentiment as data_preparation_sentiment
 from data_preparation.data_preparation_pos import MBERTTokenizer
+import random as python_random
 from transformers import (TFBertForSequenceClassification, BertTokenizer,
                           TFBertForTokenClassification)
 
 metric_names = {"pos": "Accuracy", "sentiment": "Macro F1"}
 
+# For reproducibility:
+np.random.seed(42)
+python_random.seed(42)
+tf.random.set_seed(42)
 
 def is_trainable(lang, data_path, task):
     code_dicts = utils.make_lang_code_dicts()
