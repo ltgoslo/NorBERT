@@ -49,6 +49,7 @@ def test(training_lang,
 
 def train(training_lang,
           short_model_name="ltgoslo/norbert",
+          epochs=10,
           use_class_weights=False):
     data_path = "../data/sentiment/"
     task = "sentiment"
@@ -61,7 +62,6 @@ def train(training_lang,
     max_length = 256
     batch_size = 8
     learning_rate = 2e-5
-    epochs = 10
 
     # Model creation
     trainer.build_model(max_length, batch_size, learning_rate, epochs, num_labels=2,
@@ -145,6 +145,7 @@ if __name__ == "__main__":
     parser.add_argument("--model_name", default="norbert")
     parser.add_argument("--short_model_name", default="ltgoslo/norbert")
     parser.add_argument("--use_class_weights", action="store_true")
+    parser.add_argument("--epochs", type=int, default=10)
 
     args = parser.parse_args()
     print(args)
@@ -155,7 +156,7 @@ if __name__ == "__main__":
     model_identifier = args.short_model_name
 
     # Train models
-    training_object = train(training_language, short_model_name=model_identifier)
+    training_object = train(training_language, short_model_name=model_identifier, epochs=args.epochs)
 
     dev_score = test(training_language,
                      training_language,

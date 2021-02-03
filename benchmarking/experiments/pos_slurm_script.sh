@@ -6,7 +6,8 @@
 #SBATCH --gres=gpu:1
 #SBATCH --nodes=1
 #SBATCH --time=5:00:00
-#SBATCH --mem=8GB
+#SBATCH --mem-per-cpu=8G
+#SBATCH --ntasks=8
 
 module purge
 module use -a /cluster/projects/nn9851k/software/easybuild/install/modules/all/
@@ -20,4 +21,4 @@ echo $MODEL_NAME
 echo $SHORT_MODEL_NAME
 echo $LANG
 
-PYTHONHASHSEED=0 python3 pos_finetuning.py --model_name "$MODEL_NAME" --short_model_name "$SHORT_MODEL_NAME" --training_language $LANG
+PYTHONHASHSEED=0 python3 pos_finetuning.py --model_name "$MODEL_NAME" --short_model_name "$SHORT_MODEL_NAME" --training_language $LANG --epochs 20

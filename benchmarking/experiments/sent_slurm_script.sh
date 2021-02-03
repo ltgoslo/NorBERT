@@ -6,7 +6,8 @@
 #SBATCH --gres=gpu:1
 #SBATCH --nodes=1
 #SBATCH --time=5:00:00
-#SBATCH --mem=8GB
+#SBATCH --mem-per-cpu=8G
+#SBATCH --ntasks=8
 
 
 module purge
@@ -19,4 +20,4 @@ SHORT_MODEL_NAME=${2} # ltgoslo/norbert is valid
 echo $MODEL_NAME
 echo $SHORT_MODEL_NAME
 
-PYTHONHASHSEED=0 python3 sentiment_finetuning.py --model_name "$MODEL_NAME" --short_model_name "$SHORT_MODEL_NAME" --use_class_weights
+PYTHONHASHSEED=0 python3 sentiment_finetuning.py --model_name "$MODEL_NAME" --short_model_name "$SHORT_MODEL_NAME" --epochs 20 --use_class_weights
