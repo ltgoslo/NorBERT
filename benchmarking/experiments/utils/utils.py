@@ -8,6 +8,36 @@ from tqdm.notebook import tqdm
 from pathlib import Path
 
 
+def read_conll(input_file):
+    """Reads a conllu file."""
+    ids = []
+    texts = []
+    tags = []
+    #
+    text = []
+    tag = []
+    idx = None
+    for line in open(input_file, encoding="utf-8"):
+        if line.startswith("# sent_id ="):
+            idx = line.strip().split()[-1]
+            ids.append(idx)
+        elif line.startswith("#"):
+            pass
+        elif line.strip() == "":
+            texts.append(text)
+            tags.append(tag)
+            text, tag = [], []
+        else:
+            try:
+                splits = line.strip().split("\t")
+                token = splits[1]  # the token
+                label = splits[3]  # the UD POS Tag label
+                text.append(token)
+                tag.append(label)
+            except ValueError:
+                print(idx)
+    return ids, texts, tags
+
 def make_lang_code_dicts():
     file_path = Path(__file__).parent / "../utils/lang_codes.tsv"
     lang_codes = pd.read_csv(file_path, header=0, sep="\t")

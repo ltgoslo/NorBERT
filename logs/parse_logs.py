@@ -26,7 +26,7 @@ for line in sys.stdin:
         sentence_loss = data["data"]["nsp_loss"]
         total_loss = data["data"]["total_loss"]
         timestamp = datetime.datetime.strptime(data["datetime"], "%Y-%m-%d %H:%M:%S.%f")
-    except KeyError:
+    except ValueError:
         cc += 1
         continue
     mlm.append(lm_loss)

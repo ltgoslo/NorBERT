@@ -27,7 +27,7 @@ if __name__ == "__main__":
 
     color = iter(cm.rainbow(np.linspace(0, 1, len(logs))))
 
-    for model in logs:
+    for model in sorted(logs):
         epochs = logs[model].epoch
         train_scores = logs[model].train_score
         dev_scores = logs[model].dev_score
