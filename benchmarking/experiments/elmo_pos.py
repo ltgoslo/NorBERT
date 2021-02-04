@@ -7,7 +7,7 @@ import os
 import time
 import numpy as np
 from simple_elmo import ElmoModel
-import tensrflow as tf
+import tensorflow as tf
 from tensorflow.keras.callbacks import EarlyStopping
 from tensorflow.keras.layers import Dense, Dropout
 from tensorflow.keras.models import Sequential
@@ -16,6 +16,7 @@ import logging
 from sklearn.metrics import classification_report
 from utils.utils import read_conll
 import random as python_random
+import pandas as pd
 
 
 def infer_embeddings(texts, contextualized):
@@ -56,6 +57,9 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
     data_path = args.input
+
+    lang = data_path.strip().split("/")[-2]
+    elmoname = args.elmo.strip().split("/")[-2]
 
     trainfile = None
     devfile = None
@@ -152,11 +156,11 @@ if __name__ == "__main__":
     history = model.fit(
         x_train,
         y_train,
-        epochs=15,
+        epochs=20,
         verbose=2,
         validation_data=(x_dev, y_dev),
         batch_size=64,
-        callbacks=[earlystopping],
+    #   callbacks=[earlystopping],
     )
 
     logger.info("Inferring embeddings for test...")
@@ -175,6 +179,13 @@ if __name__ == "__main__":
     # Convert predictions from integers back to text labels:
     y_test_real = [classes[int(np.argmax(pred))] for pred in y_test]
     predictions = [classes[int(np.argmax(pred))] for pred in predictions]
+
+    train_accuracies = history.history["accuracy"]
+    dev_accuracies = history.history["val_accuracy"]
+    epochs_series = range(len(train_accuracies))
+
+    df = pd.DataFrame(list(zip(epochs_series, train_accuracies, dev_accuracies)), columns =["epoch", "train_score", "dev_score"])
+    df.to_csv(f"{lang}_{elmoname}_pos_log.tsv", sep="\t", index=False)
 
     logger.info("Classification report for the test set:")
     logger.info(classification_report(y_test_real, predictions))
