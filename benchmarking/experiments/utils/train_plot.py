@@ -37,7 +37,7 @@ if __name__ == "__main__":
 
     plt.xlabel("Epochs")
     plt.ylabel("Performance")
-    plt.xticks(range(10))
+    plt.xticks(range(20))
     plt.legend(loc="best")
-    plt.title(f"{task} for {language}")
+    # plt.title(f"{task} for {language}")
     plt.savefig(f"{task}_{language}_plot.png", dpi=300, bbox_inches="tight")
