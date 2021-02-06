@@ -169,8 +169,8 @@ if __name__ == "__main__":
                       short_model_name=model_identifier)
 
     table = pd.DataFrame({"Train Lang": training_language,
-                          "Dev Acc": [dev_score],
-                          "Test Acc": [test_score]
+                          "Dev F1": [dev_score],
+                          "Test F1": [test_score]
                           })
 
     print(table)
