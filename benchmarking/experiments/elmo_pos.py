@@ -24,7 +24,9 @@ def infer_embeddings(texts, contextualized):
     elmo_vectors = contextualized.get_elmo_vectors(texts, layers="average")
     end = time.time()
     processing_time = int(end - start)
-    logger.info(f"ELMo embeddings for your input are ready in {processing_time} seconds")
+    logger.info(
+        f"ELMo embeddings for your input are ready in {processing_time} seconds"
+    )
     logger.info(f"Tensor shape: {elmo_vectors.shape}")
 
     nr_words = len([item for sublist in texts for item in sublist])
@@ -40,7 +42,9 @@ def infer_embeddings(texts, contextualized):
 
 
 if __name__ == "__main__":
-    logging.basicConfig(format="%(asctime)s : %(levelname)s : %(message)s", level=logging.INFO)
+    logging.basicConfig(
+        format="%(asctime)s : %(levelname)s : %(message)s", level=logging.INFO
+    )
     logger = logging.getLogger(__name__)
 
     # For reproducibility:
@@ -50,9 +54,7 @@ if __name__ == "__main__":
 
     parser = argparse.ArgumentParser()
     arg = parser.add_argument
-    arg(
-        "--input", "-i", help="Path to a directory with CONLLu files", required=True
-    )
+    arg("--input", "-i", help="Path to a directory with CONLLu files", required=True)
     arg("--elmo", "-e", help="Path to ELMo model", required=True)
 
     args = parser.parse_args()
@@ -123,24 +125,24 @@ if __name__ == "__main__":
     x_dev = infer_embeddings(x_dev_sentences, el_model)
 
     # Basic type of TensorFlow models: a sequential stack of layers
-    model = (Sequential())
+    model = Sequential()
 
     # We now start adding layers.
     # The first layer maps the ELMo representations into low-dimensional hidden representations:
     model.add(
-        Dense(128,
-              input_shape=(el_model.vector_size,),
-              activation="relu",
-              name="Input", ))
+        Dense(
+            128, input_shape=(el_model.vector_size,), activation="relu", name="Input",
+        )
+    )
 
     model.add(Dropout(0.1))  # We will use dropout after the first hidden layer
 
     # model.add(Dense(128, activation="relu"))
 
-    model.add(
-        Dense(num_classes, activation="softmax", name="Output"))
+    model.add(Dense(num_classes, activation="softmax", name="Output"))
     model.compile(
-        loss="categorical_crossentropy", optimizer="adam", metrics=["accuracy"])
+        loss="categorical_crossentropy", optimizer="adam", metrics=["accuracy"]
+    )
 
     # Print out the model architecture
     logger.info(model.summary())
@@ -160,7 +162,7 @@ if __name__ == "__main__":
         verbose=2,
         validation_data=(x_dev, y_dev),
         batch_size=64,
-    #   callbacks=[earlystopping],
+        #   callbacks=[earlystopping],
     )
 
     logger.info("Inferring embeddings for test...")
@@ -184,9 +186,11 @@ if __name__ == "__main__":
     dev_accuracies = history.history["val_accuracy"]
     epochs_series = range(len(train_accuracies))
 
-    df = pd.DataFrame(list(zip(epochs_series, train_accuracies, dev_accuracies)), columns =["epoch", "train_score", "dev_score"])
+    df = pd.DataFrame(
+        list(zip(epochs_series, train_accuracies, dev_accuracies)),
+        columns=["epoch", "train_score", "dev_score"],
+    )
     df.to_csv(f"{lang}_{elmoname}_pos_log.tsv", sep="\t", index=False)
 
     logger.info("Classification report for the test set:")
     logger.info(classification_report(y_test_real, predictions))
-

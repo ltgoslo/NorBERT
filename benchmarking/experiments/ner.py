@@ -4,16 +4,15 @@
 # Adapted from
 # https://colab.research.google.com/gist/peregilk/6f5efea432e88199f5d68a150cef237f/-nbailab-finetuning-and-evaluating-a-bert-model-for-ner-and-pos.ipynb
 
+import argparse
 import os
 import numpy as np
-from datasets import load_dataset, load_from_disk
+from datasets import load_from_disk
 from seqeval.metrics import accuracy_score
+from seqeval.metrics import classification_report
 from seqeval.metrics import f1_score
 from seqeval.metrics import precision_score
 from seqeval.metrics import recall_score
-from seqeval.metrics import classification_report
-import argparse
-
 from transformers import (
     AutoConfig,
     AutoModelForTokenClassification,
@@ -117,7 +116,8 @@ if __name__ == "__main__":
     save_total_limit = 1  # param {type: "integer"}
     load_best_model_at_end = True  # @param {type: "boolean"}
 
-    output_dir = model_name.split("/")[-1] + "_" + dataset_name + "_" + str(per_device_train_batch_size)
+    output_dir = model_name.split("/")[-1] + "_" + dataset_name + "_" \
+                 + str(per_device_train_batch_size)
     overwrite_output_dir = False
 
     # Load the dataset
