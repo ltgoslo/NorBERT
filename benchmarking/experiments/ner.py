@@ -94,8 +94,7 @@ if __name__ == "__main__":
     task_name = "ner"
 
     overwrite_cache = True
-    output_dir = model_name.split("/")[-1] + "_" + dataset_name
-    overwrite_output_dir = False
+
     seed = 42
     set_seed(seed)
 
@@ -106,17 +105,20 @@ if __name__ == "__main__":
 
     # Training
     num_train_epochs = args.epochs  # @param {type: "number"}
-    per_device_train_batch_size = 32  # param {type: "integer"}
-    per_device_eval_batch_size = 32  # param {type: "integer"}
+    per_device_train_batch_size = 8  # param {type: "integer"}
+    per_device_eval_batch_size = 8  # param {type: "integer"}
     learning_rate = 3e-05  # @param {type: "number"}
     weight_decay = 0.0  # param {type: "number"}
     adam_beta1 = 0.9  # param {type: "number"}
     adam_beta2 = 0.999  # param {type: "number"}
     adam_epsilon = 1e-08  # param {type: "number"}
     max_grad_norm = 1.0  # param {type: "number"}
-    num_warmup_steps = 350  # @param {type: "number"}
+    num_warmup_steps = 750  # @param {type: "number"}
     save_total_limit = 1  # param {type: "integer"}
     load_best_model_at_end = True  # @param {type: "boolean"}
+
+    output_dir = model_name.split("/")[-1] + "_" + dataset_name + "_" + str(per_device_train_batch_size)
+    overwrite_output_dir = False
 
     # Load the dataset
     dataset = load_from_disk(dataset_name)
