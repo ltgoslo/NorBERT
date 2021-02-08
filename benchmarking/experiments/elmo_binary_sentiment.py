@@ -85,7 +85,7 @@ if __name__ == "__main__":
     data_path = args.input
     method = args.method
     elmo_layers = args.elmo_layers
-    elmoname = args.elmo.strip().split("/")[-2]
+    elmoname = args.elmo.strip().split("/")[-1]
 
     # For reproducibility:
     np.random.seed(42)
@@ -183,13 +183,11 @@ if __name__ == "__main__":
     else:
         model.add(
             Bidirectional(
-                LSTM(16, return_sequences=True, recurrent_dropout=0.1),
+                LSTM(8, return_sequences=True, recurrent_dropout=0.1),
                 input_shape=(MAXLEN, x_train.shape[2]),
             )
         )
         model.add(GlobalMaxPooling1D())
-
-    # model.add(Dense(128, activation="relu"))
 
     model.add(Dense(num_classes, activation="softmax", name="Output"))
     model.compile(
@@ -210,7 +208,7 @@ if __name__ == "__main__":
     history = model.fit(
         x_train,
         y_train,
-        epochs=10,
+        epochs=20,
         verbose=2,
         validation_data=(x_dev, y_dev),
         batch_size=32,
