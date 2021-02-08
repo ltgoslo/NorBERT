@@ -8,7 +8,7 @@ from tqdm.notebook import tqdm
 from pathlib import Path
 
 
-def read_conll(input_file):
+def read_conll(input_file, label_nr=3):
     """Reads a conllu file."""
     ids = []
     texts = []
@@ -31,7 +31,7 @@ def read_conll(input_file):
             try:
                 splits = line.strip().split("\t")
                 token = splits[1]  # the token
-                label = splits[3]  # the UD POS Tag label
+                label = splits[label_nr]  # the UD Tag label
                 text.append(token)
                 tag.append(label)
             except ValueError:
