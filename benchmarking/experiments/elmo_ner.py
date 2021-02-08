@@ -26,12 +26,6 @@ from seqeval.metrics import recall_score
 def infer_embeddings(texts, contextualized, layers="average"):
     start = time.time()
     elmo_vectors = contextualized.get_elmo_vectors(texts, layers=layers)
-    end = time.time()
-    processing_time = int(end - start)
-    logger.info(
-        f"ELMo embeddings for your input are ready in {processing_time} seconds"
-    )
-    logger.info(f"Tensor shape: {elmo_vectors.shape}")
 
     nr_words = len([item for sublist in texts for item in sublist])
 
@@ -42,6 +36,15 @@ def infer_embeddings(texts, contextualized, layers="average"):
         for row in cropped_matrix:
             feature_matrix[nr] = row
             nr += 1
+
+    end = time.time()
+    processing_time = int(end - start)
+
+    logger.info(
+        f"ELMo embeddings for your input are ready in {processing_time} seconds"
+    )
+    logger.info(f"Tensor shape: {feature_matrix.shape}")
+
     return feature_matrix
 
 
@@ -73,7 +76,7 @@ if __name__ == "__main__":
     elmo_layers = args.elmo_layers
 
     lang = data_path.strip().split("/")[-2]
-    elmoname = args.elmo.strip().split("/")[-2]
+    elmoname = args.elmo.strip().split("/")[-1]
 
     trainfile = None
     devfile = None
@@ -114,11 +117,7 @@ if __name__ == "__main__":
     # Converting text labels to indexes
     y_train = [classes.index(i) for i in y_train]
     y_dev = [classes.index(i) for i in y_dev]
-    if lang == "nno":
-        # Train set for Nynorsk lacks examples for B-MISC
-        y_test = [classes.index(i) if i in classes else classes.index("B-MISC") for i in y_test]
-    else:
-        y_test = [classes.index(i) for i in y_test]
+    y_test = [classes.index(i) for i in y_test]
 
     # Convert indexes to binary class matrix (for use with categorical_crossentropy loss)
     y_train = to_categorical(y_train, num_classes)
@@ -172,7 +171,7 @@ if __name__ == "__main__":
     history = model.fit(
         x_train,
         y_train,
-        epochs=2,
+        epochs=20,
         verbose=2,
         validation_data=(x_dev, y_dev),
         batch_size=32,
@@ -204,16 +203,19 @@ if __name__ == "__main__":
         list(zip(epochs_series, train_accuracies, dev_accuracies)),
         columns=["epoch", "train_score", "dev_score"],
     )
-    df.to_csv(f"{lang}_{elmoname}_pos_log.tsv", sep="\t", index=False)
+    df.to_csv(f"{lang}_{elmoname}_ner_log.tsv", sep="\t", index=False)
 
+    y_test_real = [y_test_real]
+    predictions = [predictions]
     logger.info("Classification report for the test set:")
     cls_rep = classification_report(y_test_real, predictions, digits=4)
     logger.info(cls_rep)
 
-    with open(f"{elmoname}_ner_{lang}_report.txt", "w") as f:
+    with open(f"{lang}_{elmoname}_ner_report.tsv", "w") as f:
         f.write(cls_rep)
+        f.write(f"\nAccuracy_score: {accuracy_score(y_test_real, predictions):.4f}")
 
-    print(f"Accuracy_score: {accuracy_score(y_test_real, predictions)}")
-    print(f"Precision: {precision_score(y_test_real, predictions)}")
-    print(f"Recall: {recall_score(y_test_real, predictions)}")
-    print(f"Micro-F1: {f1_score(y_test_real, predictions)}")
+    print(f"Accuracy_score: {accuracy_score(y_test_real, predictions):.4f}")
+    print(f"Precision: {precision_score(y_test_real, predictions):.4f}")
+    print(f"Recall: {recall_score(y_test_real, predictions):.4f}")
+    print(f"Micro-F1: {f1_score(y_test_real, predictions):.4f}")
