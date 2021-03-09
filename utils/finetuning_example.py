@@ -7,6 +7,7 @@ from torch.utils import data
 from transformers import AdamW
 from transformers import BertForSequenceClassification, AutoTokenizer
 import argparse
+import logging
 
 # This is an example of fine-tuning NorBert for the sentence classification task
 # A Norwegian sentiment classification dataset is available at
@@ -21,6 +22,9 @@ def multi_acc(y_pred, y_test):
 
 
 if __name__ == "__main__":
+    logging.basicConfig(format="%(asctime)s : %(levelname)s : %(message)s", level=logging.INFO)
+    logger = logging.getLogger(__name__)
+
     parser = argparse.ArgumentParser()
     arg = parser.add_argument
     arg(
@@ -38,7 +42,7 @@ if __name__ == "__main__":
     modelname = args.model
     dataset = args.dataset
 
-    tokenizer = AutoTokenizer.from_pretrained(modelname)
+    tokenizer = AutoTokenizer.from_pretrained(modelname, use_fast=False)
     if args.gpu:
         model = BertForSequenceClassification.from_pretrained(modelname).to("cuda")
     else:
@@ -47,10 +51,10 @@ if __name__ == "__main__":
 
     optimizer = AdamW(model.parameters(), lr=1e-5)
 
-    print("Reading train data...")
+    logger.info("Reading train data...")
     train_data = pd.read_csv(dataset)
     train_data.columns = ["labels", "text"]
-    print("Train data reading complete.")
+    logger.info("Train data reading complete.")
 
     texts = train_data.text.to_list()
     text_labels = train_data.labels.to_list()
@@ -61,7 +65,7 @@ if __name__ == "__main__":
         for param in model.base_model.parameters():
             param.requires_grad = False
 
-    print("Tokenizing...")
+    logger.info("Tokenizing...")
     if args.gpu:
         labels = torch.tensor(text_labels).to("cuda")
         encoding = tokenizer(
@@ -75,10 +79,10 @@ if __name__ == "__main__":
 
     input_ids = encoding["input_ids"]
     attention_mask = encoding["attention_mask"]
-    print("Tokenizing finished.")
+    logger.info("Tokenizing finished.")
 
     train_dataset = data.TensorDataset(input_ids, attention_mask, labels)
-    train_iter = data.DataLoader(train_dataset, batch_size=16, shuffle=True)
+    train_iter = data.DataLoader(train_dataset, batch_size=32, shuffle=True)
 
     for epoch in range(args.epochs):
         losses = 0
@@ -95,10 +99,10 @@ if __name__ == "__main__":
             optimizer.step()
         train_acc = total_train_acc / len(train_iter)
         train_loss = losses / len(train_iter)
-        print(f"Epoch: {epoch}, Loss: {train_loss:.4f}, Accuracy: {train_acc:.4f}")
+        logger.info(f"Epoch: {epoch}, Loss: {train_loss:.4f}, Accuracy: {train_acc:.4f}")
 
     # We can try the fine-tuned model on a couple of sentences:
-    predict = False
+    predict = True
 
     if predict:
         model.eval()
@@ -109,12 +113,14 @@ if __name__ == "__main__":
         ]
 
         for s in sentences:
-            print(s)
+            logger.info(s)
             encoding = tokenizer(
                 [s], return_tensors="pt", padding=True, truncation=True, max_length=256
             )
+            if args.gpu:
+                encoding = encoding.to("cuda")
             input_ids = encoding["input_ids"]
-            print(tokenizer.convert_ids_to_tokens(input_ids[0]))
+            logger.info(tokenizer.convert_ids_to_tokens(input_ids[0]))
             attention_mask = encoding["attention_mask"]
             outputs = model(input_ids, attention_mask=attention_mask)
-            print(outputs)
+            logger.info(outputs)
