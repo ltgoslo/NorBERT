@@ -1,7 +1,7 @@
 #!/bin/bash
 #SBATCH --job-name=BERT_TFR
 #SBATCH --mail-type=FAIL
-#SBATCH --account=YPUR_PROJECT_NUMBER
+#SBATCH --account=nn9447k
 #SBATCH --time=15:00:00      # Max walltime is 14 days.
 #SBATCH --mem-per-cpu=8G
 
@@ -32,7 +32,7 @@ echo ${3}  # name(s) of the output TFR file(s), for example, "norbert.tfr"
 
 # TODO: implement creating a list of TFR file names from the list of input file names?
 
-python3 ${BERT_ROOT}/utils/create_pretraining_data.py --input_file=${1} --vocab_file=${2} --dupe_factor=5 --max_seq_length=${MAX_SEQ_LEN} --max_predictions_per_seq=${MAX_PR} --output_file=${OUTPUT_DIR}${3}
+python3 ${BERT_ROOT}/utils/create_pretraining_data.py --input_file=${1} --vocab_file=${2} --dupe_factor=6 --max_seq_length=${MAX_SEQ_LEN} --max_predictions_per_seq=${MAX_PR} --output_file=${OUTPUT_DIR}${3}
 
 # This is for the Uncased variant:
 # python3 create_pretraining_data.py --input_file=${1}  --vocab_file=${2} --dupe_factor=10 --max_seq_length=128 --max_predictions_per_seq=20 --do_lower_case --output_file=${OUTPUT_DIR}${3}

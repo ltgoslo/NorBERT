@@ -1,22 +1,20 @@
 #!/bin/bash
-#
-#SBATCH --job-name=norelmo_pos
+#SBATCH --job-name=bert_ner
+#SBATCH --mail-type=FAIL
 #SBATCH --account=nn9851k
-#SBATCH --partition=accel
-#SBATCH --gres=gpu:1
+#SBATCH --partition=accel    # To use the accelerator nodes
+#SBATCH --gres=gpu:1         # To specify how many GPUs to use (on one node)
+#SBATCH --time=1:00:00      # Max walltime is 14 days.
+#SBATCH --mem-per-cpu=4G
 #SBATCH --nodes=1
-#SBATCH --time=5:00:00
-#SBATCH --mem-per-cpu=8G
-#SBATCH --ntasks=8
+#SBATCH --cpus-per-task=6
 
-module purge
+set -o errexit  # Recommended for easier debugging
+
+## Load your modules
 module use -a /cluster/projects/nn9851k/software/easybuild/install/modules/all/
+module purge   # Recommended for reproducibility
+module load NLPL-nlptools/2021.01-gomkl-2019b-Python-3.7.4
 module load NLPL-simple_elmo/0.6.0-gomkl-2019b-Python-3.7.4
 
-UD=${1}  # ../data/norne/nob
-ELMO=${2} # /cluster/projects/nn9851k/andreku/norlm/norelmo30
-
-echo $UD
-echo $ELMO
-
-PYTHONHASHSEED=0 python3 elmo_ner.py --input ${UD} --elmo ${ELMO} --elmo_layers average
+python3 ner_elmo.py --train ${1} --dev ${2} --test ${3} --elmo ${4} --name ${5}

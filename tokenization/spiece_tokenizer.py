@@ -2,9 +2,13 @@
 
 import sys
 from tokenizers import SentencePieceBPETokenizer
+from tokenizers.pre_tokenizers import Whitespace
+
 import gensim
 
 tokenizer = SentencePieceBPETokenizer()
+pre_tokenizer = Whitespace()
+tokenizer.pre_tokenizer = pre_tokenizer
 
 data = gensim.models.word2vec.LineSentence(sys.argv[1])
 

@@ -3,24 +3,17 @@
 
 import argparse
 import collections
-import os
+import logging
+import random as python_random
 import time
 import numpy as np
-from simple_elmo import ElmoModel
 import tensorflow as tf
+from conllu import parse
+from simple_elmo import ElmoModel
+from smart_open import open
 from tensorflow.keras.callbacks import EarlyStopping
-from tensorflow.keras.layers import Dense, Dropout
-from tensorflow.keras.models import Sequential
 from tensorflow.keras.utils import to_categorical
-import logging
-from utils.utils import read_conll
-import random as python_random
-import pandas as pd
-from seqeval.metrics import accuracy_score
-from seqeval.metrics import classification_report
-from seqeval.metrics import f1_score
-from seqeval.metrics import precision_score
-from seqeval.metrics import recall_score
+from elmodel import keras_ner
 
 
 def infer_embeddings(texts, contextualized, layers="average"):
@@ -30,12 +23,12 @@ def infer_embeddings(texts, contextualized, layers="average"):
     nr_words = len([item for sublist in texts for item in sublist])
 
     feature_matrix = np.zeros((nr_words, contextualized.vector_size))
-    nr = 0
+    row_nr = 0
     for vect, sent in zip(elmo_vectors, texts):
         cropped_matrix = vect[: len(sent), :]
         for row in cropped_matrix:
-            feature_matrix[nr] = row
-            nr += 1
+            feature_matrix[row_nr] = row
+            row_nr += 1
 
     end = time.time()
     processing_time = int(end - start)
@@ -61,8 +54,11 @@ if __name__ == "__main__":
 
     parser = argparse.ArgumentParser()
     arg = parser.add_argument
-    arg("--input", "-i", help="Path to a directory with CONLLu files", required=True)
+    arg("--train", "-t", help="Path to the train CONLLU file", required=True)
+    arg("--dev", "-d", help="Path to the dev CONLLU file", required=True)
     arg("--elmo", "-e", help="Path to ELMo model", required=True)
+    arg("--test", help="Path to the test CONLLU file")
+    arg("--name", "-n", help="Name for the CONLLU file to save", default="predictions.conllu.gz")
     arg(
         "--elmo_layers",
         "-l",
@@ -72,36 +68,23 @@ if __name__ == "__main__":
     )
 
     args = parser.parse_args()
-    data_path = args.input
     elmo_layers = args.elmo_layers
 
-    lang = data_path.strip().split("/")[-2]
     elmoname = args.elmo.strip().split("/")[-1]
 
-    trainfile = None
-    devfile = None
-    testfile = None
-    for file in os.scandir(data_path):
-        if file.name.endswith(".conllu"):
-            if "-train" in file.name:
-                trainfile = file
-            elif "-dev" in file.name:
-                devfile = file
-            elif "-test" in file.name:
-                testfile = file
-
-    if trainfile is None or devfile is None or testfile is None:
-        raise SystemExit("Not all necessary CONLL files found!")
-
     logger.info("Loading the datasets...")
-    train_data = read_conll(trainfile, label_nr=9)
-    dev_data = read_conll(devfile, label_nr=9)
-    test_data = read_conll(testfile, label_nr=9)
+    # Returns  texts, tags
+    train_conll = parse(open(args.train, "r").read())
+    dev_conll = parse(open(args.dev, "r").read())
+
+    train_data = [[token["form"] for token in sentence] for sentence in train_conll], \
+                 [[token["misc"]["name"] for token in sentence] for sentence in train_conll]
+    dev_data = [[token["form"] for token in sentence] for sentence in dev_conll], \
+               [[token["misc"]["name"] for token in sentence] for sentence in dev_conll]
     logger.info("Finished loading the datasets")
 
-    y_train = [item for sublist in train_data[2] for item in sublist]
-    y_dev = [item for sublist in dev_data[2] for item in sublist]
-    y_test = [item for sublist in test_data[2] for item in sublist]
+    y_train = [item for sublist in train_data[1] for item in sublist]
+    y_dev = [item for sublist in dev_data[1] for item in sublist]
 
     classes = sorted(list(set(y_train)))
     num_classes = len(classes)
@@ -117,42 +100,33 @@ if __name__ == "__main__":
     # Converting text labels to indexes
     y_train = [classes.index(i) for i in y_train]
     y_dev = [classes.index(i) for i in y_dev]
-    y_test = [classes.index(i) for i in y_test]
 
     # Convert indexes to binary class matrix (for use with categorical_crossentropy loss)
     y_train = to_categorical(y_train, num_classes)
     logger.info(f"Train labels shape: {y_train.shape}")
     y_dev = to_categorical(y_dev, num_classes)
-    y_test = to_categorical(y_test, num_classes)
 
     el_model = ElmoModel()
     el_model.load(args.elmo, max_batch_size=64)
 
-    x_sentences = train_data[1]
-    x_dev_sentences = dev_data[1]
-    x_test_sentences = test_data[1]
+    x_sentences = train_data[0]
+    x_dev_sentences = dev_data[0]
     logger.info(f"{len(x_sentences)} train texts")
     average_length = np.mean([len(t) for t in x_sentences])
     logger.info(f"Average train text length: {average_length:.3f} words")
+
+    counter = 0
+    for nr, sentence in enumerate(dev_conll):
+        for token in sentence:
+            token["misc"]["name"] = "B_PER"
+            counter += 1
 
     logger.info("Inferring embeddings for train and dev...")
     x_train = infer_embeddings(x_sentences, el_model, layers=elmo_layers)
     x_dev = infer_embeddings(x_dev_sentences, el_model, layers=elmo_layers)
 
-    # Basic type of TensorFlow models: a sequential stack of layers
-    model = Sequential()
+    model = keras_ner(input_shape=el_model.vector_size, hidden_size=128, num_classes=num_classes)
 
-    # We now start adding layers.
-    # The first layer maps the ELMo representations into low-dimensional hidden representations:
-    model.add(
-        Dense(
-            128, input_shape=(el_model.vector_size,), activation="relu", name="Input",
-        )
-    )
-
-    model.add(Dropout(0.1))  # We will use dropout after the first hidden layer
-
-    model.add(Dense(num_classes, activation="softmax", name="Output"))
     model.compile(
         loss="categorical_crossentropy", optimizer="adam", metrics=["accuracy"]
     )
@@ -163,7 +137,7 @@ if __name__ == "__main__":
     # We will monitor the dynamics of accuracy on the validation set during training
     # If it stops improving, we will stop training.
     earlystopping = EarlyStopping(
-        monitor="val_accuracy", min_delta=0.0001, patience=3, verbose=1, mode="max"
+        monitor="val_accuracy", min_delta=0.0001, patience=2, verbose=1, mode="max"
     )
 
     # Train the compiled model on the training data
@@ -177,45 +151,35 @@ if __name__ == "__main__":
         batch_size=32,
         callbacks=[earlystopping],
     )
+    if args.test:
+        test_conll = parse(open(args.test, "r").read())
 
-    logger.info("Inferring embeddings for test...")
-    x_test = infer_embeddings(x_test_sentences, el_model, layers=elmo_layers)
+        test_data = [[token["form"] for token in sentence] for sentence in test_conll], \
+                    [[token["misc"]["name"] for token in sentence] for sentence in test_conll]
+        test_sentences = test_data[0]
+        logger.info(f"{len(test_sentences)} test texts")
+        average_length = np.mean([len(t) for t in test_sentences])
+        logger.info(f"Average test text length: {average_length:.3f} words")
+        logger.info("Finished loading the test dataset")
 
-    score = model.evaluate(x_test, y_test, verbose=2)
-    logger.info(f"Test loss: {score[0]:.4f}")
-    logger.info(f"Test accuracy: {score[1]:.4f}")
+        logger.info("Inferring embeddings for the test set...")
+        x_test = infer_embeddings(test_sentences, el_model, layers=elmo_layers)
 
-    # We use the seqeval classification_report() function
-    # to calculate per-class F1 score on the dev set:
-    predictions = model.predict(x_test)
-    # map predictions to the binary {0, 1} range:
-    predictions = np.around(predictions)
+        predictions = model.predict(x_test)
+        # map predictions to the binary {0, 1} range:
+        predictions = np.around(predictions)
 
-    # Convert predictions from integers back to text labels:
-    y_test_real = [classes[int(np.argmax(pred))] for pred in y_test]
-    predictions = [classes[int(np.argmax(pred))] for pred in predictions]
+        # Convert predictions from integers back to text labels:
+        predictions = [classes[int(np.argmax(pred))] for pred in predictions]
 
-    train_accuracies = history.history["accuracy"]
-    dev_accuracies = history.history["val_accuracy"]
-    epochs_series = range(len(train_accuracies))
+        counter = 0
+        for nr, sentence in enumerate(test_conll):
+            for token in sentence:
+                token["misc"]["name"] = predictions[counter]
+                counter += 1
 
-    df = pd.DataFrame(
-        list(zip(epochs_series, train_accuracies, dev_accuracies)),
-        columns=["epoch", "train_score", "dev_score"],
-    )
-    df.to_csv(f"{lang}_{elmoname}_ner_log.tsv", sep="\t", index=False)
-
-    y_test_real = [y_test_real]
-    predictions = [predictions]
-    logger.info("Classification report for the test set:")
-    cls_rep = classification_report(y_test_real, predictions, digits=4)
-    logger.info(cls_rep)
-
-    with open(f"{lang}_{elmoname}_ner_report.tsv", "w") as f:
-        f.write(cls_rep)
-        f.write(f"\nAccuracy_score: {accuracy_score(y_test_real, predictions):.4f}")
-
-    print(f"Accuracy_score: {accuracy_score(y_test_real, predictions):.4f}")
-    print(f"Precision: {precision_score(y_test_real, predictions):.4f}")
-    print(f"Recall: {recall_score(y_test_real, predictions):.4f}")
-    print(f"Micro-F1: {f1_score(y_test_real, predictions):.4f}")
+        PRED_FILE = args.name
+        with open(PRED_FILE, "w") as f:
+            for sentence in test_conll:
+                f.write(sentence.serialize())
+        logger.info(f"Predictions written to {PRED_FILE}")

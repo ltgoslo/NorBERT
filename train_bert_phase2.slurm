@@ -22,6 +22,7 @@ module purge   # Recommended for reproducibility
 module load NLPL-nvidia_BERT/20.06.8-gomkl-2019b-TensorFlow-1.15.2-Python-3.7.4
 
 
+# export BERT_ROOT=$EBROOTNLPLMINNVIDIAMINBERT  # Change to this for recent versions of NLPL Virtual laboratory
 export BERT_ROOT=$EBROOTNLPLMINNVIDIA_BERT
 
 export LOCAL_ROOT=`pwd`

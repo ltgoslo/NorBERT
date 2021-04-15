@@ -1,7 +1,7 @@
 #!/bin/bash
 #SBATCH --job-name=BERT_TFR
 #SBATCH --mail-type=FAIL
-#SBATCH --account=YOUR_PROJECT_NUMBER
+#SBATCH --account=nn9851k
 #SBATCH --time=15:00:00      # Max walltime is 14 days.
 #SBATCH --mem-per-cpu=8G
 
