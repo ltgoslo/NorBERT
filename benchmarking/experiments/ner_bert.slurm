@@ -17,4 +17,4 @@ module purge   # Recommended for reproducibility
 module load NLPL-nlptools/2021.01-gomkl-2019b-Python-3.7.4
 module load NLPL-transformers/4.2.2-gomkl-2019b-Python-3.7.4
 
-python3 bert_nert.py --train ${1} --dev ${2} --test ${3} --bert ${4} --name ${5}
+python3 bert_ner.py --train ${1} --dev ${2} --test ${3} --bert ${4} --name ${5}
