@@ -39,5 +39,5 @@ if __name__ == "__main__":
     plt.ylabel("Performance")
     plt.xticks(range(20))
     plt.legend(loc="best")
-    # plt.title(f"{task} for {language}")
+    plt.title(f"Sentiment classification")
     plt.savefig(f"{task}_{language}_plot.png", dpi=300, bbox_inches="tight")

@@ -21,6 +21,8 @@ for line in sys.stdin:
     data = json.loads(line[5:])
     if "metadata" in data:
         continue
+    if not data["step"]:
+        continue
     try:
         lm_loss = data["data"]["mlm_loss"]
         sentence_loss = data["data"]["nsp_loss"]

@@ -35,7 +35,7 @@ if __name__ == "__main__":
         required=True,
     )
     arg("--dataset", "-d", help="Path to a document classification dataset", required=True)
-    arg("--gpu", "-g", help="Use GPU?", type=bool, default=True)
+    arg("--gpu", "-g", help="Use GPU?", action="store_true")
     arg("--epochs", "-e", type=int, help="Number of epochs", default=10)
 
     args = parser.parse_args()
@@ -44,9 +44,9 @@ if __name__ == "__main__":
 
     tokenizer = AutoTokenizer.from_pretrained(modelname, use_fast=False)
     if args.gpu:
-        model = BertForSequenceClassification.from_pretrained(modelname).to("cuda")
+        model = BertForSequenceClassification.from_pretrained(modelname, num_labels=2).to("cuda")
     else:
-        model = BertForSequenceClassification.from_pretrained(modelname)
+        model = BertForSequenceClassification.from_pretrained(modelname, num_labels=2)
     model.train()
 
     optimizer = AdamW(model.parameters(), lr=1e-5)
@@ -60,7 +60,7 @@ if __name__ == "__main__":
     text_labels = train_data.labels.to_list()
 
     # We can freeze the base model and optimize only the classifier on top of it:
-    freeze_model = False
+    freeze_model = True
     if freeze_model:
         for param in model.base_model.parameters():
             param.requires_grad = False
