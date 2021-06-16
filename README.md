@@ -6,7 +6,7 @@ We made minor changes to their code, see the `patches_for_NVIDIA_BERT` subdirect
 
 NorBERT training was conducted as a part of the NorLM project. Check this paper for more details:
 
-_Andrey Kutuzov, Jeremy Barnes, Erik Velldal, Lilja Øvrelid, Stephan Oepen. [Large-Scale Contextualised Language Modelling for Norwegian](https://arxiv.org/abs/2104.06546), NoDaLiDa'21 (2021)_
+_Andrey Kutuzov, Jeremy Barnes, Erik Velldal, Lilja Øvrelid, Stephan Oepen. [Large-Scale Contextualised Language Modelling for Norwegian](https://www.aclweb.org/anthology/2021.nodalida-main.4/), NoDaLiDa'21 (2021)_
 
 - [Read about NorBERT](http://norlm.nlpl.eu)
 - [Download NorBERT from our repository](http://vectors.nlpl.eu/repository/216.zip) or [from HuggingFace](https://huggingface.co/ltgoslo/norbert)
