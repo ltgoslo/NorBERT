@@ -16,5 +16,5 @@ stack = []
 for line in sys.stdin:
     doc = nlp(line.strip())
     for sentence in doc.sentences:
-        if len(sentence.text) > 3:
+        if len(sentence.text) > 2:
             print(sentence.text)

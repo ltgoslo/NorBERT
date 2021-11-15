@@ -35,22 +35,26 @@ if __name__ == "__main__":
         required=True,
     )
     arg("--dataset", "-d", help="Path to a document classification dataset", required=True)
-    arg("--gpu", "-g", help="Use GPU?", action="store_true")
+    arg("--gpu", help='Use GPU?', dest="gpu", action='store_true')
+    arg('--no-gpu', help='Use GPU?', dest="gpu", action='store_false')
     arg("--epochs", "-e", type=int, help="Number of epochs", default=10)
-
+    arg("--maxl", "-l", type=int, help="Max length", default=256)
+    parser.set_defaults(gpu=True)
     args = parser.parse_args()
+
     modelname = args.model
     dataset = args.dataset
 
     tokenizer = AutoTokenizer.from_pretrained(modelname, use_fast=False)
     if args.gpu:
-        model = BertForSequenceClassification.from_pretrained(modelname, num_labels=2).to("cuda")
+        model = BertForSequenceClassification.from_pretrained(modelname).to("cuda")
     else:
-        model = BertForSequenceClassification.from_pretrained(modelname, num_labels=2)
+        model = BertForSequenceClassification.from_pretrained(modelname)
     model.train()
 
     optimizer = AdamW(model.parameters(), lr=1e-5)
 
+    logger.info(args.maxl)
     logger.info("Reading train data...")
     train_data = pd.read_csv(dataset)
     train_data.columns = ["labels", "text"]
@@ -60,7 +64,7 @@ if __name__ == "__main__":
     text_labels = train_data.labels.to_list()
 
     # We can freeze the base model and optimize only the classifier on top of it:
-    freeze_model = True
+    freeze_model = False
     if freeze_model:
         for param in model.base_model.parameters():
             param.requires_grad = False
@@ -69,12 +73,12 @@ if __name__ == "__main__":
     if args.gpu:
         labels = torch.tensor(text_labels).to("cuda")
         encoding = tokenizer(
-            texts, return_tensors="pt", padding=True, truncation=True, max_length=256
+            texts, return_tensors="pt", padding=True, truncation=True, max_length=args.maxl
         ).to("cuda")
     else:
         labels = torch.tensor(text_labels)
         encoding = tokenizer(
-            texts, return_tensors="pt", padding=True, truncation=True, max_length=256
+            texts, return_tensors="pt", padding=True, truncation=True, max_length=args.maxl
         )
 
     input_ids = encoding["input_ids"]

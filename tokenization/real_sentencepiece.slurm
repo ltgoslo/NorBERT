@@ -2,7 +2,7 @@
 #SBATCH --job-name=sentencepiece
 #SBATCH --mail-type=FAIL
 #SBATCH --account=nn9851k
-#SBATCH --time=2:10:00
+#SBATCH --time=10:00:00
 #SBATCH --nodes=1
 #SBATCH --mem-per-cpu=8G
 #SBATCH --ntasks=16

@@ -1,11 +1,11 @@
 #!/bin/bash
 #SBATCH --job-name=segmenting
 #SBATCH --nodes=1
-#SBATCH --time=20:00:00
+#SBATCH --time=10:00:00
 #SBATCH --partition=accel
 #SBATCH --gres=gpu:1
 #SBATCH --account=nn9851k
-#SBATCH --ntasks=8
+#SBATCH --cpus-per-task=6
 #SBATCH --mem-per-cpu=8G
 
 set -o errexit # Make bash exit on any error
@@ -20,4 +20,4 @@ echo "Input file: ${1}"
 echo "Language: ${2}"
 echo "Output file: ${3}"
 
-zcat ${1} | python3 segmenter.py ${2} | gzip > ${3}
+zcat ${1} | python3 segmenter2.py ${2} | gzip > ${3}
