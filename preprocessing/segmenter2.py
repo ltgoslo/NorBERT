@@ -13,8 +13,15 @@ nlp = stanza.Pipeline(lang, processors="tokenize")
 
 stack = []
 
+counter = 0
+
 for line in sys.stdin:
     doc = nlp(line.strip())
     for sentence in doc.sentences:
         if len(sentence.text) > 2:
             print(sentence.text)
+    print("")
+    counter += 1
+    if counter % 10000 == 0:
+        print(f"{counter} lines processed", file=sys.stderr)
+
