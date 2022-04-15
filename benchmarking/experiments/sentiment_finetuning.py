@@ -151,7 +151,7 @@ if __name__ == "__main__":
     print(args)
 
     data_dir = "../data/sentiment/"
-    training_language = "no"
+    training_language = "nop"
     model_name = args.model_name
     model_identifier = args.short_model_name
 

@@ -4,12 +4,12 @@
 import sys
 import stanza
 
-# stanza.download("no")
-# stanza.download("nn")
+#stanza.download("no")
+#stanza.download("nn")
 
 lang = sys.argv[1]  # State the segmenter model (no or nn)
 
-nlp = stanza.Pipeline(lang, processors="tokenize")
+nlp = stanza.Pipeline(lang, processors="tokenize", tokenize_batch_size=256)
 
 stack = []
 

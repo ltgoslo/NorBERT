@@ -1,7 +1,7 @@
 #!/bin/bash
 #SBATCH --job-name=segmenting
 #SBATCH --nodes=1
-#SBATCH --time=25:00:00
+#SBATCH --time=30:00:00
 #SBATCH --partition=accel
 #SBATCH --gres=gpu:1
 #SBATCH --account=nn9851k
