@@ -6,52 +6,61 @@
 import argparse
 from smart_open import open
 import logging
-from text_dedup.embedders import SimHashEmbedder
-from text_dedup.postprocess.clustering import simhash_clustering
-from text_dedup.postprocess.group import get_group_indices
+from text_dedup.near_dedup import SimHashEmbedder
+from text_dedup.postprocess import simhash_clustering
+from text_dedup.postprocess import get_group_indices
 import os
 
 os.environ["TOKENIZERS_PARALLELISM"] = "true"
 
 if __name__ == "__main__":
-    # corpus = [
-    #     "The quick brown fox jumps over the lazy dog",
-    #     "The quick brown fox jumps over the lazy dog",
-    #     "This is a test",
-    #     "This is a test",
-    # ]
     parser = argparse.ArgumentParser()
     arg = parser.add_argument
     arg("--corpus", help="Path to the corpus (can be compressed)", required=True)
+    arg("--logname", "-l", help="Name of the log file", default="corpus_deduplication")
     arg("--mode", "-m", help="Identical or near-deduplication", choices=["identical", "near"],
         default="identical")
     args = parser.parse_args()
 
+    logfile = args.logname + "_dedup.log"
     # Setting up logging:
     logging.basicConfig(
-        format="%(asctime)s : %(levelname)s : %(message)s", level=logging.INFO
+        format="%(asctime)s : %(levelname)s : %(message)s", level=logging.INFO, handlers=[
+        logging.FileHandler(logfile),
+        logging.StreamHandler()
+    ]
     )
     logger = logging.getLogger(__name__)
 
     embedder = SimHashEmbedder()
 
-    corpus = args.corpus
-    data = open(corpus)
-
+    total = 0
     discarded = 0
     short = 0
-    logger.info(f"Calculating hashes of {corpus}...")
+
     if args.mode == "near":
         embeddings = []
     else:
         embeddings = set()
+
+    corpus = args.corpus
+    data = open(corpus)
+    logger.info(f"Calculating hashes of {corpus}...")
+
     for line in data:
         line = line.strip()
         # We do not include very short lines in deduplication:
         if len(line.split()) < 5:
             short += 1
+            total += 1
             print(line)
+            continue
+        # Blank lines are also simply printed as they are
+        if not line:
+            print()
+            continue
         computed_hash = embedder.embed_function()(line)
+        total += 1
         if args.mode == "near":
             embeddings.append(computed_hash)
         else:
@@ -60,9 +69,10 @@ if __name__ == "__main__":
                 continue
             embeddings.add(computed_hash)
             print(line)
-    logger.info(f"Calculating {len(embeddings)} hashes complete")
+    logger.info(f"Processing {total} lines complete, {len(embeddings)} unique hashes in total")
     if args.mode == "identical":
         logger.info(f"{discarded} duplicate lines discarded, {short} short lines left as is.")
+        exit()
 
     if args.mode == "near":
         logger.info(f"Clustering hashes...")
