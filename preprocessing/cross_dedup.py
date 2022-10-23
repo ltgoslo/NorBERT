@@ -104,4 +104,4 @@ if __name__ == "__main__":
     logger.info(f"{discarded} duplicate lines discarded, {short} short lines left as is.")
     logger.info("Some examples of discarded sequences:")
     for el in examples:
-        logger.info(el)
+        logger.info(f"'{el}'")
