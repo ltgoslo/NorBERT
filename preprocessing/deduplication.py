@@ -55,11 +55,11 @@ def process(f, hasher, hashes):
         if len(line.split()) < 5:
             short += 1
             total += 1
-            out.write(line)
+            out.write(line + "\n")
             continue
         # Blank lines are also simply printed as they are
         if not line:
-            out.write()
+            out.write("\n")
             continue
         computed_hash = hasher.embed_function()(line)
         total += 1
@@ -69,7 +69,7 @@ def process(f, hasher, hashes):
                 examples.remove(random.sample(list(examples), 1)[0])
             examples.add(line)
             continue
-        out.write(line)
+        out.write(line + "\n")
         return total, discarded, short, examples
 
 
@@ -103,12 +103,15 @@ if __name__ == "__main__":
                      if path.isfile(path.join(corpus, f)) and f.endswith(".gz")]
     logger.info(f"Calculating hashes of {corpus}...")
 
-    with Pool(10) as p:
-        computed_hashes = p.starmap(compute_hashes, zip(datafiles, repeat(embedder)))
-    embeddings = set().union(*computed_hashes)
-    logger.info(f"Computing hashes complete, {len(embeddings)} unique hashes in total")
+    paralellism = 32 if len(datafiles) > 32 else len(datafiles)
 
-    with Pool(10) as p:
+    with Pool(paralellism) as p:
+        computed_hashes = p.starmap(compute_hashes, zip(datafiles, repeat(embedder)))
+    logger.info(f"Computing hashes complete.")
+    embeddings = set().union(*computed_hashes)
+    logger.info(f"{len(embeddings)} unique hashes in total")
+
+    with Pool(paralellism) as p:
         results = p.starmap(process, zip(datafiles, repeat(embedder), repeat(embeddings)))
 
     all_total = sum([el[0] for el in results])
@@ -117,7 +120,7 @@ if __name__ == "__main__":
     all_examples = [el[3] for el in results]
     all_examples = set().union(*all_examples)
 
-    logger.info(f"Processing {all_total} lines processed.")
+    logger.info(f"{all_total} lines processed.")
     if args.mode == "identical":
         logger.info(f"{all_discarded} duplicate lines discarded ("
                     f"{(all_discarded / all_total) * 100}%), "
