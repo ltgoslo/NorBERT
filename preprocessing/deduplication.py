@@ -3,6 +3,8 @@
 
 # Deduplicate a set of plain-text files ending with *.gz
 # Deduplication is per line
+# text_dedup package is used in Python 3.9 version
+# (in Python 3.8, calls are different)
 
 import argparse
 from smart_open import open
