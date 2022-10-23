@@ -22,7 +22,8 @@ os.environ["TOKENIZERS_PARALLELISM"] = "true"
 
 
 def compute_hashes(f, hasher):
-    file_hashes = set()
+    source_dir, source_file = path.split(f)
+    file_hashes = {}
     data = open(f)
     logger.info(f"Computing hashes from {f}...")
     for line in data:
@@ -34,21 +35,26 @@ def compute_hashes(f, hasher):
         if not line:
             continue
         computed_hash = hasher.embed_function()(line)
-        file_hashes.add(computed_hash)
+        file_hashes[computed_hash] = source_file
     return file_hashes
 
 
-def process(f, hasher, hashes):
+def process(f, hasher, hashes, filenames):
     source_dir, source_file = path.split(f)
+    our_index = filenames.index(source_file)
+
     newname = "dedup_" + source_file
     outfile = path.join(source_dir, newname)
     out = open(outfile, "a")
     data = open(f)
     logger.info(f"De-duplicating {f}...")
+
+    written_hashes = set()
     total = 0
     discarded = 0
     short = 0
     examples = set()
+
     for line in data:
         line = line.strip()
         # We do not include very short lines in deduplication:
@@ -63,14 +69,26 @@ def process(f, hasher, hashes):
             continue
         computed_hash = hasher.embed_function()(line)
         total += 1
-        if computed_hash in hashes:
+
+        #  Checking if this line occurred in other files:
+        files_seen = hashes[computed_hash]
+        indices = [filenames.index(f) for f in files_seen]
+        preceding = [ind for ind in indices if ind < our_index]
+
+        # Only saving the line if it was not seen before in the current file
+        # AND we are the first file to encounter it:
+        if len(preceding) == 0 and computed_hash not in written_hashes:
+            written_hashes.add(computed_hash)
+            out.write(line + "\n")
+        # Else discarding the line as a duplicate:
+        else:
             discarded += 1
             if len(examples) > 10:
                 examples.remove(random.sample(list(examples), 1)[0])
             examples.add(line)
-            continue
-        out.write(line + "\n")
-        return total, discarded, short, examples
+    data.close()
+    out.close()
+    return total, discarded, short, examples
 
 
 if __name__ == "__main__":
@@ -101,6 +119,8 @@ if __name__ == "__main__":
     elif path.isdir(corpus):
         datafiles = [path.join(corpus, f) for f in os.listdir(corpus)
                      if path.isfile(path.join(corpus, f)) and f.endswith(".gz")]
+
+    datafilenames = [path.split(n)[1] for n in datafiles]
     logger.info(f"Calculating hashes of {corpus}...")
 
     paralellism = 32 if len(datafiles) > 32 else len(datafiles)
@@ -108,11 +128,17 @@ if __name__ == "__main__":
     with Pool(paralellism) as p:
         computed_hashes = p.starmap(compute_hashes, zip(datafiles, repeat(embedder)))
     logger.info(f"Computing hashes complete.")
-    embeddings = set().union(*computed_hashes)
+    keys = set().union(*computed_hashes)
+    embeddings = {el: set() for el in keys}
+    for el in embeddings:
+        for dic in computed_hashes:
+            if el in dic:
+                embeddings[el].add(dic[el])
     logger.info(f"{len(embeddings)} unique hashes in total")
 
     with Pool(paralellism) as p:
-        results = p.starmap(process, zip(datafiles, repeat(embedder), repeat(embeddings)))
+        results = p.starmap(process, zip(datafiles, repeat(embedder), repeat(embeddings),
+                                         repeat(datafilenames)))
 
     all_total = sum([el[0] for el in results])
     all_discarded = sum([el[1] for el in results])
