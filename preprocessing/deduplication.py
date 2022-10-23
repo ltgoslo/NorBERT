@@ -149,9 +149,9 @@ if __name__ == "__main__":
     logger.info(f"{all_total} lines processed.")
     if args.mode == "identical":
         logger.info(f"{all_discarded} duplicate lines discarded ("
-                    f"{(all_discarded / all_total) * 100}%), "
+                    f"{(all_discarded / all_total) * 100}:.3f%), "
                     f"{all_short} short lines left as is.")
-        logger.info("Some examples of discarded sequences:")
+        logger.info("Some examples of discarded lines:")
         for el in list(all_examples)[:11]:
             logger.info(f"'{el}'")
         exit()
