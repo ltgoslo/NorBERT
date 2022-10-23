@@ -18,7 +18,7 @@ os.environ["TOKENIZERS_PARALLELISM"] = "true"
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     arg = parser.add_argument
-    arg("--corpus", help="Path to the corpus (can be compressed)", required=True)
+    arg("--corpus", "-c", help="Path to the corpus (can be compressed)", required=True)
     arg("--logname", "-l", help="Name of the log file", default="corpus_deduplication")
     arg("--mode", "-m", help="Identical or near-deduplication", choices=["identical", "near"],
         default="identical")
