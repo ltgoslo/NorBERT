@@ -13,8 +13,72 @@ from text_dedup.near_dedup import SimHashEmbedder
 import os
 from os import path
 import random
+from multiprocessing import Pool
+from itertools import repeat
+import gc
 
 os.environ["TOKENIZERS_PARALLELISM"] = "true"
+
+
+def compute_hashes(f, hasher):
+    file_hashes = set()
+    data = open(f)
+    logger.info(f"Computing hashes from {f}...")
+    for line in data:
+        line = line.strip()
+        # We do not include very short lines in deduplication:
+        if len(line.split()) < 5:
+            continue
+        # Blank lines are also discarded
+        if not line:
+            continue
+        computed_hash = hasher.embed_function()(line)
+        file_hashes.add(computed_hash)
+    data.close()
+    return file_hashes
+
+
+def process(f, hasher, hashes):
+    source_dir, source_file = path.split(f)
+
+    newname = "dedup_" + source_file
+    outfile = path.join(source_dir, newname)
+    out = open(outfile, "a")
+    data = open(f)
+    logger.info(f"De-duplicating {f}...")
+
+    total = 0
+    discarded = 0
+    short = 0
+    examples = set()
+
+    for line in data:
+        line = line.strip()
+        # We do not include very short lines in deduplication:
+        if len(line.split()) < 5:
+            short += 1
+            total += 1
+            out.write(line + "\n")
+            continue
+        # Blank lines are also simply printed as they are
+        if not line:
+            out.write("\n")
+            continue
+        computed_hash = hasher.embed_function()(line)
+        total += 1
+
+        if computed_hash in hashes:
+            discarded += 1
+            if len(examples) > 10:
+                examples.remove(random.sample(list(examples), 1)[0])
+            examples.add(line)
+            continue
+        else:
+            out.write(line + "\n")
+    data.close()
+    out.close()
+    return total, discarded, short, examples
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
@@ -36,13 +100,6 @@ if __name__ == "__main__":
 
     embedder = SimHashEmbedder()
 
-    total = 0
-    discarded = 0
-    short = 0
-
-    embeddings = set()
-    examples = set()
-
     datafiles1 = []
     corpus1 = args.corpus1
     if path.isfile(corpus1):
@@ -59,49 +116,35 @@ if __name__ == "__main__":
         datafiles2 = [path.join(corpus2, f) for f in os.listdir(corpus2)
                       if path.isfile(path.join(corpus2, f)) and f.endswith(".gz")]
 
+    paralellism_hash = 32 if len(datafiles1) > 32 else len(datafiles1)
+    paralellism_dedup = 32 if len(datafiles2) > 32 else len(datafiles2)
+
     logger.info(f"Computing hashes from the reference corpus {corpus1}...")
-    for f in datafiles1:
-        data = open(f)
-        logger.info(f"Processing {f}...")
-        for line in data:
-            line = line.strip()
-            # We do not include very short lines in deduplication:
-            if len(line.split()) < 5:
-                continue
-            # Blank lines are also skipped
-            if not line:
-                continue
-            computed_hash = embedder.embed_function()(line)
-            embeddings.add(computed_hash)
+    with Pool(paralellism_hash) as p:
+        computed_hashes = p.starmap(compute_hashes, zip(datafiles1, repeat(embedder)))
+    logger.info(f"Computing hashes complete.")
+    embeddings = set().union(*computed_hashes)
     logger.info(f"Processing complete, {len(embeddings)} unique reference hashes in total")
 
+    del computed_hashes
+    gc.collect()
+
     logger.info(f"De-deduplicating corpus {corpus2}...")
-    for f in datafiles2:
-        data = open(f)
-        logger.info(f"Processing {f}...")
-        for line in data:
-            line = line.strip()
-            # We do not include very short lines in deduplication:
-            if len(line.split()) < 5:
-                short += 1
-                total += 1
-                print(line)
-                continue
-            # Blank lines are also simply printed as they are
-            if not line:
-                print()
-                continue
-            computed_hash = embedder.embed_function()(line)
-            total += 1
-            if computed_hash in embeddings:
-                discarded += 1
-                if len(examples) > 10:
-                    examples.remove(random.sample(list(examples), 1)[0])
-                examples.add(line)
-                continue
-            print(line)
-    logger.info(f"Processing {total} lines complete.")
-    logger.info(f"{discarded} duplicate lines discarded, {short} short lines left as is.")
-    logger.info("Some examples of discarded sequences:")
-    for el in examples:
+
+    with Pool(paralellism_dedup) as p:
+        results = p.starmap(process, zip(datafiles2, repeat(embedder), repeat(embeddings)))
+
+    all_total = sum([el[0] for el in results])
+    all_discarded = sum([el[1] for el in results])
+    all_short = sum([el[2] for el in results])
+    all_examples = [el[3] for el in results]
+    all_examples = set().union(*all_examples)
+
+    logger.info(f"{all_total} lines processed.")
+    logger.info(f"{all_discarded} duplicate lines discarded ("
+                f"{(all_discarded / all_total) * 100:.3f}%), "
+                f"{all_short} short lines left as is.")
+    logger.info("Some examples of discarded lines:")
+    for el in list(all_examples)[:11]:
         logger.info(f"'{el}'")
+

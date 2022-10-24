@@ -129,7 +129,8 @@ if __name__ == "__main__":
     paralellism_dedup = 16 if len(datafiles) > 16 else len(datafiles)
 
     with Pool(paralellism_hash) as p:
-        computed_hashes = p.starmap(compute_hashes, zip(datafiles, repeat(embedder), repeat(datafilenames)))
+        computed_hashes = p.starmap(compute_hashes, zip(datafiles, repeat(embedder),
+                                                        repeat(datafilenames)))
     logger.info(f"Computing hashes complete.")
     keys = set().union(*computed_hashes)
     embeddings = {el: set() for el in keys}
@@ -139,7 +140,7 @@ if __name__ == "__main__":
                 embeddings[el].add(dic[el])
     logger.info(f"{len(embeddings)} unique hashes in total")
 
-    del(computed_hashes)
+    del computed_hashes
     gc.collect()
 
     with Pool(paralellism_dedup) as p:
