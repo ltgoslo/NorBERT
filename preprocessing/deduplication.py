@@ -17,12 +17,14 @@ import os
 from os import path
 import random
 from itertools import repeat
+import gc
 
 os.environ["TOKENIZERS_PARALLELISM"] = "true"
 
 
-def compute_hashes(f, hasher):
+def compute_hashes(f, hasher, filenames):
     source_dir, source_file = path.split(f)
+    file_index = filenames.index(source_file)
     file_hashes = {}
     data = open(f)
     logger.info(f"Computing hashes from {f}...")
@@ -35,7 +37,8 @@ def compute_hashes(f, hasher):
         if not line:
             continue
         computed_hash = hasher.embed_function()(line)
-        file_hashes[computed_hash] = source_file
+        file_hashes[computed_hash] = file_index
+    data.close()
     return file_hashes
 
 
@@ -71,8 +74,7 @@ def process(f, hasher, hashes, filenames):
         total += 1
 
         #  Checking if this line occurred in other files:
-        files_seen = hashes[computed_hash]
-        indices = [filenames.index(f) for f in files_seen]
+        indices = hashes[computed_hash]
         preceding = [ind for ind in indices if ind < our_index]
 
         # Only saving the line if it was not seen before in the current file
@@ -106,7 +108,7 @@ if __name__ == "__main__":
         format="%(asctime)s : %(levelname)s : %(message)s", level=logging.INFO, handlers=[
             logging.FileHandler(logfile),
             logging.StreamHandler()
-        ]
+            ]
     )
     logger = logging.getLogger(__name__)
 
@@ -123,10 +125,11 @@ if __name__ == "__main__":
     datafilenames = [path.split(n)[1] for n in datafiles]
     logger.info(f"Calculating hashes of {corpus}...")
 
-    paralellism = 32 if len(datafiles) > 32 else len(datafiles)
+    paralellism_hash = 32 if len(datafiles) > 32 else len(datafiles)
+    paralellism_dedup = 16 if len(datafiles) > 16 else len(datafiles)
 
-    with Pool(paralellism) as p:
-        computed_hashes = p.starmap(compute_hashes, zip(datafiles, repeat(embedder)))
+    with Pool(paralellism_hash) as p:
+        computed_hashes = p.starmap(compute_hashes, zip(datafiles, repeat(embedder), repeat(datafilenames)))
     logger.info(f"Computing hashes complete.")
     keys = set().union(*computed_hashes)
     embeddings = {el: set() for el in keys}
@@ -136,7 +139,10 @@ if __name__ == "__main__":
                 embeddings[el].add(dic[el])
     logger.info(f"{len(embeddings)} unique hashes in total")
 
-    with Pool(paralellism) as p:
+    del(computed_hashes)
+    gc.collect()
+
+    with Pool(paralellism_dedup) as p:
         results = p.starmap(process, zip(datafiles, repeat(embedder), repeat(embeddings),
                                          repeat(datafilenames)))
 
@@ -149,7 +155,7 @@ if __name__ == "__main__":
     logger.info(f"{all_total} lines processed.")
     if args.mode == "identical":
         logger.info(f"{all_discarded} duplicate lines discarded ("
-                    f"{(all_discarded / all_total) * 100}:.3f%), "
+                    f"{(all_discarded / all_total) * 100:.3f}%), "
                     f"{all_short} short lines left as is.")
         logger.info("Some examples of discarded lines:")
         for el in list(all_examples)[:11]:
