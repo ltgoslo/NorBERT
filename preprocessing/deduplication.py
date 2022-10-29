@@ -126,7 +126,7 @@ if __name__ == "__main__":
     logger.info(f"Calculating hashes of {corpus}...")
 
     paralellism_hash = 32 if len(datafiles) > 32 else len(datafiles)
-    paralellism_dedup = 16 if len(datafiles) > 16 else len(datafiles)
+    paralellism_dedup = 8 if len(datafiles) > 8 else len(datafiles)
 
     with Pool(paralellism_hash) as p:
         computed_hashes = p.starmap(compute_hashes, zip(datafiles, repeat(embedder),

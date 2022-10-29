@@ -38,10 +38,10 @@ def compute_hashes(f, hasher):
     return file_hashes
 
 
-def process(f, hasher, hashes):
+def process(f, hasher, hashes, marker):
     source_dir, source_file = path.split(f)
 
-    newname = "dedup_" + source_file
+    newname = marker + "_" + source_file
     outfile = path.join(source_dir, newname)
     out = open(outfile, "a")
     data = open(f)
@@ -117,7 +117,7 @@ if __name__ == "__main__":
                       if path.isfile(path.join(corpus2, f)) and f.endswith(".gz")]
 
     paralellism_hash = 32 if len(datafiles1) > 32 else len(datafiles1)
-    paralellism_dedup = 32 if len(datafiles2) > 32 else len(datafiles2)
+    paralellism_dedup = 16 if len(datafiles2) > 16 else len(datafiles2)
 
     logger.info(f"Computing hashes from the reference corpus {corpus1}...")
     with Pool(paralellism_hash) as p:
@@ -132,7 +132,7 @@ if __name__ == "__main__":
     logger.info(f"De-deduplicating corpus {corpus2}...")
 
     with Pool(paralellism_dedup) as p:
-        results = p.starmap(process, zip(datafiles2, repeat(embedder), repeat(embeddings)))
+        results = p.starmap(process, zip(datafiles2, repeat(embedder), repeat(embeddings), repeat(args.logname)))
 
     all_total = sum([el[0] for el in results])
     all_discarded = sum([el[1] for el in results])
