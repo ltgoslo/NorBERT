@@ -104,12 +104,13 @@ if __name__ == "__main__":
 
     logfile = args.logname + "_dedup.log"
     # Setting up logging:
-    logging.basicConfig(
-        format="%(asctime)s : %(levelname)s : %(message)s", level=logging.INFO, handlers=[
+    logging.basicConfig(format="%(asctime)s : %(levelname)s : %(message)s", level=logging.INFO,
+                         handlers=[
             logging.FileHandler(logfile),
             logging.StreamHandler()
-            ]
-    )
+                        ]
+                        )
+
     logger = logging.getLogger(__name__)
 
     embedder = SimHashEmbedder()
