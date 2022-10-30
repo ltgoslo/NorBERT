@@ -13,7 +13,7 @@ from text_dedup.near_dedup import SimHashEmbedder
 import os
 from os import path
 import random
-from multiprocessing import Pool
+from multiprocessing import Pool, Manager
 from itertools import repeat
 import gc
 
@@ -116,6 +116,7 @@ if __name__ == "__main__":
         datafiles2 = [path.join(corpus2, f) for f in os.listdir(corpus2)
                       if path.isfile(path.join(corpus2, f)) and f.endswith(".gz")]
 
+    manager = Manager()
     paralellism_hash = 32 if len(datafiles1) > 32 else len(datafiles1)
     paralellism_dedup = 16 if len(datafiles2) > 16 else len(datafiles2)
 
@@ -124,6 +125,7 @@ if __name__ == "__main__":
         computed_hashes = p.starmap(compute_hashes, zip(datafiles1, repeat(embedder)))
     logger.info(f"Computing hashes complete.")
     embeddings = set().union(*computed_hashes)
+    embeddings = manager.dict(embeddings)
     logger.info(f"Processing complete, {len(embeddings)} unique reference hashes in total")
 
     del computed_hashes
@@ -132,7 +134,9 @@ if __name__ == "__main__":
     logger.info(f"De-deduplicating corpus {corpus2}...")
 
     with Pool(paralellism_dedup) as p:
-        results = p.starmap(process, zip(datafiles2, repeat(embedder), repeat(embeddings), repeat(args.logname)))
+        results = p.starmap(process, zip(datafiles2, repeat(embedder),
+                                         [embeddings for i in range(len(datafiles2))],
+                                         repeat(args.logname)))
 
     all_total = sum([el[0] for el in results])
     all_discarded = sum([el[1] for el in results])
