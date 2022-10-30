@@ -7,17 +7,17 @@
 # (in Python 3.8, calls are different)
 
 import argparse
-from smart_open import open
-from multiprocessing import Pool
+import gc
 import logging
-from text_dedup.near_dedup import SimHashEmbedder
-from text_dedup.postprocess import simhash_clustering
-from text_dedup.postprocess import get_group_indices
 import os
-from os import path
 import random
 from itertools import repeat
-import gc
+from multiprocessing import Pool, Manager
+from os import path
+from smart_open import open
+from text_dedup.near_dedup import SimHashEmbedder
+from text_dedup.postprocess import get_group_indices
+from text_dedup.postprocess import simhash_clustering
 
 os.environ["TOKENIZERS_PARALLELISM"] = "true"
 
@@ -51,6 +51,7 @@ def process(f, hasher, hashes, filenames):
     out = open(outfile, "a")
     data = open(f)
     logger.info(f"De-duplicating {f}...")
+    # logger.info(f"Our index is {our_index}...")
 
     written_hashes = set()
     total = 0
@@ -105,9 +106,9 @@ if __name__ == "__main__":
     logfile = args.logname + "_dedup.log"
     # Setting up logging:
     logging.basicConfig(format="%(asctime)s : %(levelname)s : %(message)s", level=logging.INFO,
-                         handlers=[
-            logging.FileHandler(logfile),
-            logging.StreamHandler()
+                        handlers=[
+                            logging.FileHandler(logfile),
+                            logging.StreamHandler()
                         ]
                         )
 
@@ -126,6 +127,8 @@ if __name__ == "__main__":
     datafilenames = [path.split(n)[1] for n in datafiles]
     logger.info(f"Calculating hashes of {corpus}...")
 
+    manager = Manager()
+
     paralellism_hash = 32 if len(datafiles) > 32 else len(datafiles)
     paralellism_dedup = 8 if len(datafiles) > 8 else len(datafiles)
 
@@ -134,18 +137,20 @@ if __name__ == "__main__":
                                                         repeat(datafilenames)))
     logger.info(f"Computing hashes complete.")
     keys = set().union(*computed_hashes)
+    logger.info(f"Merging hashes complete.")
     embeddings = {el: set() for el in keys}
-    for el in embeddings:
-        for dic in computed_hashes:
-            if el in dic:
-                embeddings[el].add(dic[el])
+    for dic in computed_hashes:
+        for el in dic:
+            embeddings[el].add(dic[el])
+    manager.dict(embeddings)
     logger.info(f"{len(embeddings)} unique hashes in total")
 
     del computed_hashes
     gc.collect()
 
     with Pool(paralellism_dedup) as p:
-        results = p.starmap(process, zip(datafiles, repeat(embedder), repeat(embeddings),
+        results = p.starmap(process, zip(datafiles, repeat(embedder),
+                                         [embeddings for i in range(len(datafiles))],
                                          repeat(datafilenames)))
 
     all_total = sum([el[0] for el in results])

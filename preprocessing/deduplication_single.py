@@ -15,8 +15,7 @@ from text_dedup.postprocess import get_group_indices
 import os
 from os import path
 import random
-from itertools import repeat
-import gc
+
 
 os.environ["TOKENIZERS_PARALLELISM"] = "true"
 
