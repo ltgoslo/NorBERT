@@ -130,7 +130,7 @@ if __name__ == "__main__":
     manager = Manager()
 
     paralellism_hash = 32 if len(datafiles) > 32 else len(datafiles)
-    paralellism_dedup = 8 if len(datafiles) > 8 else len(datafiles)
+    paralellism_dedup = 32 if len(datafiles) > 32 else len(datafiles)
 
     with Pool(paralellism_hash) as p:
         computed_hashes = p.starmap(compute_hashes, zip(datafiles, repeat(embedder),
@@ -142,7 +142,7 @@ if __name__ == "__main__":
     for dic in computed_hashes:
         for el in dic:
             embeddings[el].add(dic[el])
-    manager.dict(embeddings)
+    embeddings = manager.dict(embeddings)
     logger.info(f"{len(embeddings)} unique hashes in total")
 
     del computed_hashes
