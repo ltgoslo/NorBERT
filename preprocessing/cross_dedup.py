@@ -80,6 +80,7 @@ def process(f, hasher, hashes, marker):
     return total, discarded, short, examples
 
 
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     arg = parser.add_argument
@@ -116,7 +117,7 @@ if __name__ == "__main__":
         datafiles2 = [path.join(corpus2, f) for f in os.listdir(corpus2)
                       if path.isfile(path.join(corpus2, f)) and f.endswith(".gz")]
 
-    manager = Manager()
+
     paralellism_hash = 32 if len(datafiles1) > 32 else len(datafiles1)
     paralellism_dedup = 16 if len(datafiles2) > 16 else len(datafiles2)
 
@@ -124,9 +125,13 @@ if __name__ == "__main__":
     with Pool(paralellism_hash) as p:
         computed_hashes = p.starmap(compute_hashes, zip(datafiles1, repeat(embedder)))
     logger.info(f"Computing hashes complete.")
-    embeddings = set().union(*computed_hashes)
-    embeddings = manager.dict(embeddings)
-    logger.info(f"Processing complete, {len(embeddings)} unique reference hashes in total")
+
+    u_hashes = set().union(*computed_hashes)
+    logger.info(f"Processing complete, {len(u_hashes)} unique reference hashes in total")
+    u_hashes = dict.fromkeys(u_hashes, None)
+
+    manager = Manager()
+    embeddings = manager.dict(u_hashes)
 
     del computed_hashes
     gc.collect()
