@@ -4,25 +4,32 @@
 import pandas as pd
 import torch
 from torch.utils import data
-from transformers import AdamW
+from torch.optim import AdamW
 from transformers import BertForSequenceClassification, AutoTokenizer
 import argparse
 import logging
+from datasets import ClassLabel
+import tqdm
+from sklearn import metrics
 
 # This is an example of fine-tuning NorBert for the sentence classification task
 # A Norwegian sentiment classification dataset is available at
-# https://github.com/ltgoslo/NorBERT/tree/main/benchmarking/data/sentiment/no
+# https://github.com/ltgoslo/norec_sentence/
+# Example train and test files are available from https://github.com/ltgoslo/NorBERT/tree/main/utils
+# (train.csv, test.csv)
 
 
 def multi_acc(y_pred, y_test):
     batch_predictions = torch.log_softmax(y_pred, dim=1).argmax(dim=1)
     correctness = batch_predictions == y_test
     acc = torch.sum(correctness).item() / y_test.size(0)
-    return acc
+    return acc, batch_predictions.tolist()
 
 
 if __name__ == "__main__":
-    logging.basicConfig(format="%(asctime)s : %(levelname)s : %(message)s", level=logging.INFO)
+    logging.basicConfig(
+        format="%(asctime)s : %(levelname)s : %(message)s", level=logging.INFO
+    )
     logger = logging.getLogger(__name__)
 
     parser = argparse.ArgumentParser()
@@ -30,20 +37,35 @@ if __name__ == "__main__":
     arg(
         "--model",
         "-m",
-        help="Path to a BERT model (/cluster/shared/nlpl/data/vectors/latest/216/ "
-        "or ltgoslo/norbert are possible options)",
+        help="Path to a BERT model (/cluster/shared/nlpl/data/vectors/latest/221/ "
+        "or ltgoslo/norbert2 are possible options)",
         required=True,
     )
-    arg("--dataset", "-d", help="Path to a document classification dataset", required=True)
-    arg("--gpu", help='Use GPU?', dest="gpu", action='store_true')
-    arg('--no-gpu', help='Use GPU?', dest="gpu", action='store_false')
-    arg("--epochs", "-e", type=int, help="Number of epochs", default=10)
+    arg(
+        "--dataset",
+        "-d",
+        help="Path to a document classification train set",
+        required=True,
+    )
+    arg(
+        "--testset",
+        "-t",
+        help="Path to a document classification test set",
+        required=True,
+    )
+    arg("--gpu", help="Use GPU?", dest="gpu", action="store_true")
+    arg("--no-gpu", help="Use GPU?", dest="gpu", action="store_false")
+    arg("--epochs", "-e", type=int, help="Number of epochs", default=5)
     arg("--maxl", "-l", type=int, help="Max length", default=256)
+    arg("--bsize", "-b", type=int, help="Batch size", default=16)
+    arg("--save", "-s", help="Where to save the finetuned model", default="ft_bert")
+
     parser.set_defaults(gpu=True)
     args = parser.parse_args()
 
     modelname = args.model
     dataset = args.dataset
+    testset = args.testset
 
     tokenizer = AutoTokenizer.from_pretrained(modelname, use_fast=False)
     if args.gpu:
@@ -54,14 +76,26 @@ if __name__ == "__main__":
 
     optimizer = AdamW(model.parameters(), lr=1e-5)
 
-    logger.info(args.maxl)
     logger.info("Reading train data...")
     train_data = pd.read_csv(dataset)
-    train_data.columns = ["labels", "text"]
     logger.info("Train data reading complete.")
 
-    texts = train_data.text.to_list()
-    text_labels = train_data.labels.to_list()
+    logger.info("Reading test data...")
+    test_data = pd.read_csv(testset)
+    logger.info("Test data reading complete.")
+
+    c2l = ClassLabel(
+        num_classes=train_data["Label"].nunique(),
+        names=train_data["Label"].unique().tolist(),
+    )
+
+    texts = train_data.Text.to_list()
+    text_labels = train_data.Label.to_list()
+    text_labels = [c2l.str2int(label) for label in text_labels]
+
+    test_texts = test_data.Text.to_list()
+    test_labels = test_data.Label.to_list()
+    test_labels = [c2l.str2int(label) for label in test_labels]
 
     # We can freeze the base model and optimize only the classifier on top of it:
     freeze_model = False
@@ -69,47 +103,125 @@ if __name__ == "__main__":
         for param in model.base_model.parameters():
             param.requires_grad = False
 
-    logger.info("Tokenizing...")
+    logger.info(f"Tokenizing with max length {args.maxl}...")
     if args.gpu:
         labels = torch.tensor(text_labels).to("cuda")
         encoding = tokenizer(
-            texts, return_tensors="pt", padding=True, truncation=True, max_length=args.maxl
+            texts,
+            return_tensors="pt",
+            padding=True,
+            truncation=True,
+            max_length=args.maxl,
+        ).to("cuda")
+        test_labels_tensor = torch.tensor(test_labels).to("cuda")
+        test_encoding = tokenizer(
+            test_texts,
+            return_tensors="pt",
+            padding=True,
+            truncation=True,
+            max_length=args.maxl,
         ).to("cuda")
     else:
         labels = torch.tensor(text_labels)
         encoding = tokenizer(
-            texts, return_tensors="pt", padding=True, truncation=True, max_length=args.maxl
+            texts,
+            return_tensors="pt",
+            padding=True,
+            truncation=True,
+            max_length=args.maxl,
+        )
+        test_labels_tensor = torch.tensor(test_labels)
+        test_encoding = tokenizer(
+            test_texts,
+            return_tensors="pt",
+            padding=True,
+            truncation=True,
+            max_length=args.maxl,
         )
 
     input_ids = encoding["input_ids"]
     attention_mask = encoding["attention_mask"]
+    test_input_ids = test_encoding["input_ids"]
+    test_attention_mask = test_encoding["attention_mask"]
     logger.info("Tokenizing finished.")
 
     train_dataset = data.TensorDataset(input_ids, attention_mask, labels)
-    train_iter = data.DataLoader(train_dataset, batch_size=32, shuffle=True)
+    train_iter = data.DataLoader(train_dataset, batch_size=args.bsize, shuffle=True)
+    test_dataset = data.TensorDataset(
+        test_input_ids, test_attention_mask, test_labels_tensor
+    )
+    test_iter = data.DataLoader(test_dataset, batch_size=args.bsize, shuffle=False)
 
+    logger.info(f"Training with batch size {args.bsize} for {args.epochs} epochs...")
+
+    fscores = []
     for epoch in range(args.epochs):
         losses = 0
         total_train_acc = 0
-        for i, (text, mask, label) in enumerate(train_iter):
+        all_predictions = []
+        for text, mask, label in tqdm.tqdm(train_iter):
             optimizer.zero_grad()
             outputs = model(text, attention_mask=mask, labels=label)
             loss = outputs.loss
             losses += loss.item()
             predictions = outputs.logits
-            accuracy = multi_acc(predictions, label)
+            accuracy, predicted_labels = multi_acc(predictions, label)
+            all_predictions += predicted_labels
             total_train_acc += accuracy
             loss.backward()
             optimizer.step()
         train_acc = total_train_acc / len(train_iter)
         train_loss = losses / len(train_iter)
-        logger.info(f"Epoch: {epoch}, Loss: {train_loss:.4f}, Accuracy: {train_acc:.4f}")
 
-    # We can try the fine-tuned model on a couple of sentences:
+        # Testing on the dev/test set:
+        model.eval()
+        dev_predictions = []
+        dev_labels = []
+        for text, mask, label in tqdm.tqdm(test_iter):
+            outputs = model(text, attention_mask=mask)
+            predictions = outputs.logits
+            accuracy, predicted_labels = multi_acc(predictions, label)
+            dev_predictions += predicted_labels
+            dev_labels += label.tolist()
+        precision, recall, fscore, support = metrics.precision_recall_fscore_support(
+            c2l.int2str(dev_labels),
+            c2l.int2str(dev_predictions),
+            average="macro",
+            zero_division=0,
+        )
+        logger.info(
+            f"Epoch: {epoch}, Train loss: {train_loss:.4f}, Train accuracy: {train_acc:.4f}, "
+            f"Test F1: {fscore:.4f}"
+        )
+        fscores.append(fscore)
+        if len(fscores) > 2:
+            if fscores[-1] <= fscores[-2]:
+                logger.info("Early stopping!")
+                break
+        model.train()
+    # Final testing on the test set
     predict = True
 
     if predict:
         model.eval()
+
+        logger.info(f"Testing on the test set with batch size {args.bsize}...")
+
+        test_predictions = []
+        test_labels = []
+        for text, mask, label in tqdm.tqdm(test_iter):
+            outputs = model(text, attention_mask=mask)
+            predictions = outputs.logits
+            accuracy, predicted_labels = multi_acc(predictions, label)
+            test_predictions += predicted_labels
+            test_labels += label.tolist()
+        logger.info(
+            metrics.classification_report(
+                c2l.int2str(test_labels), c2l.int2str(test_predictions),
+                zero_division=0)
+        )
+
+        # We can try the fine-tuned model on a couple of sentences:
 
         sentences = [
             "Polanski er den snikende uhygges mester",
@@ -128,3 +240,9 @@ if __name__ == "__main__":
             attention_mask = encoding["attention_mask"]
             outputs = model(input_ids, attention_mask=attention_mask)
             logger.info(outputs)
+            predicted = torch.log_softmax(outputs.logits, dim=1).argmax(dim=1)
+            predicted_class = c2l.int2str(predicted)
+            logger.info(f"This is {predicted_class[0]}")
+    if args.save:
+        logger.info(f"Saving the model to {args.save}...")
+        model.save_pretrained(args.save)
