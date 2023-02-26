@@ -12,6 +12,7 @@ from datasets import ClassLabel
 import tqdm
 from sklearn import metrics
 
+
 # This is an example of fine-tuning NorBert for the sentence classification task
 # A Norwegian sentiment classification dataset is available at
 # https://github.com/ltgoslo/norec_sentence/
@@ -26,6 +27,18 @@ def multi_acc(y_pred, y_test):
     return acc, batch_predictions.tolist()
 
 
+def encoder(labels, texts, cur_tokenizer, cur_device):
+    labels_tensor = torch.tensor(labels).to(cur_device)
+    encoding = cur_tokenizer(
+        texts,
+        return_tensors="pt",
+        padding=True,
+        truncation=True,
+        max_length=args.maxl,
+    ).to(cur_device)
+    return labels_tensor, encoding
+
+
 if __name__ == "__main__":
     logging.basicConfig(
         format="%(asctime)s : %(levelname)s : %(message)s", level=logging.INFO
@@ -38,19 +51,25 @@ if __name__ == "__main__":
         "--model",
         "-m",
         help="Path to a BERT model (/cluster/shared/nlpl/data/vectors/latest/221/ "
-        "or ltgoslo/norbert2 are possible options)",
+             "or ltgoslo/norbert2 are possible options)",
         required=True,
     )
     arg(
         "--dataset",
         "-d",
-        help="Path to a document classification train set",
+        help="Path to a sentence classification train set",
+        required=True,
+    )
+    arg(
+        "--devset",
+        "-dev",
+        help="Path to a sentence classification dev set",
         required=True,
     )
     arg(
         "--testset",
         "-t",
-        help="Path to a document classification test set",
+        help="Path to a sentence classification test set",
         required=True,
     )
     arg("--gpu", help="Use GPU?", dest="gpu", action="store_true")
@@ -65,33 +84,44 @@ if __name__ == "__main__":
 
     modelname = args.model
     dataset = args.dataset
+    devset = args.devset
     testset = args.testset
-
-    tokenizer = AutoTokenizer.from_pretrained(modelname, use_fast=False)
-    if args.gpu:
-        model = BertForSequenceClassification.from_pretrained(modelname).to("cuda")
-    else:
-        model = BertForSequenceClassification.from_pretrained(modelname)
-    model.train()
-
-    optimizer = AdamW(model.parameters(), lr=1e-5)
 
     logger.info("Reading train data...")
     train_data = pd.read_csv(dataset)
     logger.info("Train data reading complete.")
 
+    logger.info("Reading dev data...")
+    dev_data = pd.read_csv(devset)
+    logger.info("Test data reading complete.")
+
     logger.info("Reading test data...")
     test_data = pd.read_csv(testset)
     logger.info("Test data reading complete.")
 
+    num_classes = train_data["Label"].nunique()
+    logger.info(f"We have {num_classes} classes")
+
     c2l = ClassLabel(
-        num_classes=train_data["Label"].nunique(),
+        num_classes=num_classes,
         names=train_data["Label"].unique().tolist(),
     )
 
-    texts = train_data.Text.to_list()
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    tokenizer = AutoTokenizer.from_pretrained(modelname, use_fast=False)
+    model = BertForSequenceClassification.from_pretrained(modelname,
+                                                          num_labels=num_classes).to(device)
+    model.train()
+
+    optimizer = AdamW(model.parameters(), lr=1e-5)
+
+    train_texts = train_data.Text.to_list()
     text_labels = train_data.Label.to_list()
     text_labels = [c2l.str2int(label) for label in text_labels]
+
+    dev_texts = dev_data.Text.to_list()
+    dev_labels = dev_data.Label.to_list()
+    dev_labels = [c2l.str2int(label) for label in dev_labels]
 
     test_texts = test_data.Text.to_list()
     test_labels = test_data.Label.to_list()
@@ -104,49 +134,27 @@ if __name__ == "__main__":
             param.requires_grad = False
 
     logger.info(f"Tokenizing with max length {args.maxl}...")
-    if args.gpu:
-        labels = torch.tensor(text_labels).to("cuda")
-        encoding = tokenizer(
-            texts,
-            return_tensors="pt",
-            padding=True,
-            truncation=True,
-            max_length=args.maxl,
-        ).to("cuda")
-        test_labels_tensor = torch.tensor(test_labels).to("cuda")
-        test_encoding = tokenizer(
-            test_texts,
-            return_tensors="pt",
-            padding=True,
-            truncation=True,
-            max_length=args.maxl,
-        ).to("cuda")
-    else:
-        labels = torch.tensor(text_labels)
-        encoding = tokenizer(
-            texts,
-            return_tensors="pt",
-            padding=True,
-            truncation=True,
-            max_length=args.maxl,
-        )
-        test_labels_tensor = torch.tensor(test_labels)
-        test_encoding = tokenizer(
-            test_texts,
-            return_tensors="pt",
-            padding=True,
-            truncation=True,
-            max_length=args.maxl,
-        )
 
-    input_ids = encoding["input_ids"]
-    attention_mask = encoding["attention_mask"]
+    train_labels_tensor, train_encoding = encoder(text_labels, train_texts, tokenizer, device)
+    test_labels_tensor, test_encoding = encoder(test_labels, test_texts, tokenizer, device)
+    dev_labels_tensor, dev_encoding = encoder(dev_labels, dev_texts, tokenizer, device)
+
+    input_ids = train_encoding["input_ids"]
+    attention_mask = train_encoding["attention_mask"]
+    dev_input_ids = dev_encoding["input_ids"]
+    dev_attention_mask = dev_encoding["attention_mask"]
     test_input_ids = test_encoding["input_ids"]
     test_attention_mask = test_encoding["attention_mask"]
     logger.info("Tokenizing finished.")
 
-    train_dataset = data.TensorDataset(input_ids, attention_mask, labels)
+    train_dataset = data.TensorDataset(input_ids, attention_mask, train_labels_tensor)
     train_iter = data.DataLoader(train_dataset, batch_size=args.bsize, shuffle=True)
+
+    dev_dataset = data.TensorDataset(
+        dev_input_ids, dev_attention_mask, dev_labels_tensor
+    )
+    dev_iter = data.DataLoader(dev_dataset, batch_size=args.bsize, shuffle=False)
+
     test_dataset = data.TensorDataset(
         test_input_ids, test_attention_mask, test_labels_tensor
     )
@@ -173,11 +181,11 @@ if __name__ == "__main__":
         train_acc = total_train_acc / len(train_iter)
         train_loss = losses / len(train_iter)
 
-        # Testing on the dev/test set:
+        # Testing on the dev set:
         model.eval()
         dev_predictions = []
         dev_labels = []
-        for text, mask, label in tqdm.tqdm(test_iter):
+        for text, mask, label in tqdm.tqdm(dev_iter):
             outputs = model(text, attention_mask=mask)
             predictions = outputs.logits
             accuracy, predicted_labels = multi_acc(predictions, label)
@@ -191,7 +199,7 @@ if __name__ == "__main__":
         )
         logger.info(
             f"Epoch: {epoch}, Train loss: {train_loss:.4f}, Train accuracy: {train_acc:.4f}, "
-            f"Test F1: {fscore:.4f}"
+            f"Dev F1: {fscore:.4f}"
         )
         fscores.append(fscore)
         if len(fscores) > 2:
@@ -230,14 +238,13 @@ if __name__ == "__main__":
 
         for s in sentences:
             logger.info(s)
-            encoding = tokenizer(
+            try_encoding = tokenizer(
                 [s], return_tensors="pt", padding=True, truncation=True, max_length=256
             )
-            if args.gpu:
-                encoding = encoding.to("cuda")
-            input_ids = encoding["input_ids"]
+            try_encoding = try_encoding.to(device)
+            input_ids = try_encoding["input_ids"]
             logger.info(tokenizer.convert_ids_to_tokens(input_ids[0]))
-            attention_mask = encoding["attention_mask"]
+            attention_mask = try_encoding["attention_mask"]
             outputs = model(input_ids, attention_mask=attention_mask)
             logger.info(outputs)
             predicted = torch.log_softmax(outputs.logits, dim=1).argmax(dim=1)
