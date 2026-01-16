@@ -119,7 +119,7 @@ def setup_training(args, tokenizer):
 
     dist.init_process_group(
         backend="nccl",
-        init_method='env://',
+        init_method='env://', # default
         rank=args.rank,
         world_size=args.world_size,
         timeout=datetime.timedelta(minutes=60)
@@ -127,7 +127,7 @@ def setup_training(args, tokenizer):
 
     seed_everything(args.seed + args.rank)
 
-    args.shard_rank = args.rank % 32
+    args.shard_rank = args.rank % int(os.getenv("SLURM_NNODES"))
     torch.cuda.set_device(args.local_rank)
     args.device = torch.device("cuda", args.local_rank)
     print(f"RCCL started on device {args.device}", flush=True)
