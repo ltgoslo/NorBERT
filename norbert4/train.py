@@ -159,8 +159,8 @@ def prepare_model_and_optimizer(args):
 
     if is_main_process():
         n_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
-        wandb.config.update(args)
-        wandb.config.update({"n_params": n_params})
+        wandb.config.update(args, allow_val_change=True)
+        wandb.config.update({"n_params": n_params}, allow_val_change=True)
         print(model)
         print(f"NUMBER OF PARAMETERS: {n_params}\n", flush=True)
 
