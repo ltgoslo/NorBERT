@@ -82,6 +82,10 @@ def parse_arguments():
     parser.add_argument("--untie", default=False, action="store_true")
     parser.add_argument("--momentum", default=0.95, type=float)
     parser.add_argument("--wd_scales", default=False, action="store_true")
+    parser.add_argument("--mask_token", default="[MASK]")
+    parser.add_argument("--cls_token", default="[CLS]")
+    parser.add_argument("--pad_token", default="[PAD]")
+    parser.add_argument("--train_format", default="pt.gz")
     args = parser.parse_args()
 
     args.output_dir.mkdir(parents=True, exist_ok=True)

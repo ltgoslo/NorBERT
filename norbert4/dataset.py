@@ -1,3 +1,6 @@
+import gzip
+import os
+
 import torch
 
 
@@ -12,16 +15,20 @@ class Dataset:
         self.global_step = 0
         self.selector_generator = torch.Generator().manual_seed(args.seed + args.rank - 1)
 
-        self.mask_index = tokenizer.token_to_id("<mask>")
-        self.cls_index = tokenizer.token_to_id("<s>")
-        self.pad_index = tokenizer.token_to_id("<pad>")
+        self.mask_index = tokenizer.token_to_id(args.mask_token)
+        self.cls_index = tokenizer.token_to_id(args.cls_token)
+        self.pad_index = tokenizer.token_to_id(args.pad_token)
 
         self.doc_segments = []
         self.orders = []
         self.lens = []
         self.seed = args.seed
         for dataset in datasets:
-            documents = torch.load("-".join([str(dataset), f"{rank:03d}.bin"]), weights_only=False)
+            if not args.train_format == "pt.gz":
+                documents = torch.load("-".join([str(dataset), f"{rank:03d}.bin"]), weights_only=False)
+            else:
+                with gzip.GzipFile("-".join([str(dataset), f"{rank:03d}.{args.train_format}"]), 'rb') as f:
+                    documents = torch.load(f, weights_only=False)
             segments = []
             for i, document in enumerate(documents):
                 if i % args.document_skip != 0:
@@ -38,7 +45,10 @@ class Dataset:
             self.lens.append(len(segments))
             self.orders.append(order)
 
-        self.random_indices = [RandomIndex(len(segments), args.seed + args.rank + 256) for segments in self.doc_segments]
+        self.random_indices = [
+            RandomIndex(len(segments), args.seed + args.rank + int(os.getenv("SLURM_NNODES")) * int(os.getenv("SLURM_TASKS_PER_NODE")))
+            for segments in self.doc_segments
+        ]
 
     def load_state(self, dataset_state):
         for order, state in zip(self.orders, dataset_state["orders"]):
