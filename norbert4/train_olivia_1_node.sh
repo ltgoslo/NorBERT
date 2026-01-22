@@ -6,10 +6,8 @@
 #SBATCH --tasks-per-node=4
 #SBATCH --cpus-per-task=7
 #SBATCH --partition=accel
-#SBATCH --qos=devel
 #SBATCH --mem=0
-#SBATCH --time=2:00:00
-#SBATCH --output=/cluster/work/projects/nn9851k/mariiaf/hplt/deu_Latn/logs/deu_Latn-train-%j.out
+#SBATCH --time=72:00:00
 
 echo "SLURM_TASKS_PER_NODE: $SLURM_TASKS_PER_NODE"
 echo "SLURM_JOB_NODELIST: $SLURM_JOB_NODELIST"
@@ -28,7 +26,7 @@ CMD="python3 train.py \
 --train_path \
 /cluster/work/projects/nn9851k/mariiaf/hplt/deu_Latn/tokenized_shards_4/train \
 --tokenizer_path /cluster/work/projects/nn9851k/mariiaf/hplt/deu_Latn/tokenizer.json \
---output_dir /cluster/work/projects/nn9851k/mariiaf/hplt/deu_Latn/norbert \
+--output_dir /cluster/work/projects/nn9851k/mariiaf/hplt/deu_Latn/norbert_1_node \
 --dataset_weights 1.0 \
 --name NorBERT4_base_deu_Latn_1_nodes \
 --max_steps 31250 \
@@ -44,11 +42,11 @@ CMD="python3 train.py \
 --local_batch_size $BATCH_SIZE \
 --max_seq_length $((8192*2)) \
 --optimizer muon \
---experiment NorBERT4_base_deu_Latn \
---global_batch_size $((256)) \
+--experiment NorBERT4_base_deu_Latn_1_nodes \
+--global_batch_size 256 \
 --momentum 0.95 \
---hybrid_numerator 1 \
---hybrid_denominator 2 \
+--hybrid_numerator 7 \
+--hybrid_denominator 8 \
 --wd_scales \
 --checkpoint_every 3125 \
 --save_every 0 \

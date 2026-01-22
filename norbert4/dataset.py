@@ -6,7 +6,7 @@ import torch
 
 class Dataset:
 
-    def __init__(self, datasets: list[str], weights: list[float], tokenizer, args, seq_length, rank):
+    def __init__(self, datasets: list[str], weights: list[float], tokenizer, args, seq_length, rank, is_validation=False):
         self.datasets = datasets
         self.weights = torch.tensor(weights)
         self.max_seq_length = seq_length + 1
@@ -23,32 +23,32 @@ class Dataset:
         self.orders = []
         self.lens = []
         self.seed = args.seed
-        for dataset in datasets:
-            if not args.train_format == "pt.gz":
-                documents = torch.load("-".join([str(dataset), f"{rank:03d}.bin"]), weights_only=False)
-            else:
-                with gzip.GzipFile("-".join([str(dataset), f"{rank:03d}.{args.train_format}"]), 'rb') as f:
-                    documents = torch.load(f, weights_only=False)
-            segments = []
-            for i, document in enumerate(documents):
-                if i % args.document_skip != 0:
-                    continue
+        if not is_validation:
+            for dataset in datasets:
+                if not args.train_format == "pt.gz":
+                    documents = torch.load("-".join([str(dataset), f"{rank:03d}.bin"]), weights_only=False)
+                else:
+                    with gzip.GzipFile("-".join([str(dataset), f"{rank:03d}.{args.train_format}"]), 'rb') as f:
+                        documents = torch.load(f, weights_only=False)
+                segments = []
+                for i, document in enumerate(documents):
+                    if i % args.document_skip != 0:
+                        continue
 
-                document = torch.cat([torch.LongTensor([self.cls_index]), document])
-                segments += [
-                    document[offset : offset + self.max_seq_length]
-                    for offset in range(0, len(document), self.max_seq_length)
-                    if len(document) > 0 and len(document) - offset > 1
-                ]
-            order = RandomIndex(len(segments), args.seed + args.rank)
-            self.doc_segments.append(segments)
-            self.lens.append(len(segments))
-            self.orders.append(order)
-
-        self.random_indices = [
-            RandomIndex(len(segments), args.seed + args.rank + int(os.getenv("SLURM_NNODES")) * int(os.getenv("SLURM_TASKS_PER_NODE")))
-            for segments in self.doc_segments
-        ]
+                    document = torch.cat([torch.LongTensor([self.cls_index]), document])
+                    segments += [
+                        document[offset : offset + self.max_seq_length]
+                        for offset in range(0, len(document), self.max_seq_length)
+                        if len(document) > 0 and len(document) - offset > 1
+                    ]
+                order = RandomIndex(len(segments), args.seed + args.rank)
+                self.doc_segments.append(segments)
+                self.lens.append(len(segments))
+                self.orders.append(order)
+            self.random_indices = [
+                RandomIndex(len(segments), args.seed + args.rank + 256)
+                for segments in self.doc_segments
+            ]
 
     def load_state(self, dataset_state):
         for order, state in zip(self.orders, dataset_state["orders"]):
@@ -158,8 +158,8 @@ class RandomIndex:
 
 class MaskedDataset(Dataset):
 
-    def __init__(self, datasets: list[str], weights: list[float], tokenizer, args, seq_length, rank):
-        super().__init__(datasets, weights, tokenizer, args, seq_length, rank)
+    def __init__(self, datasets: list[str], weights: list[float], tokenizer, args, seq_length, rank, is_validation=False):
+        super().__init__(datasets, weights, tokenizer, args, seq_length, rank, is_validation)
 
         self.masking_strategy = SpanMaskingStrategy(args.n_special_tokens, args.mask_random_p, args.mask_keep_p, args.vocab_size, self.mask_index)
 

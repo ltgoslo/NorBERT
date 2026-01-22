@@ -9,6 +9,8 @@ from pathlib import Path
 from functools import partial
 from contextlib import nullcontext
 import datetime
+from glob import glob
+from statistics import mean
 
 from tokenizers import Tokenizer
 import torch
@@ -23,6 +25,7 @@ from muon import Muon
 from stable_lamb import StableLamb
 from utils import trapezoid_schedule, trapezoid_schedule_sqrt, is_main_process, seed_everything
 from dataset import MaskedDataset, CausalDataset
+from validation_dataset import ValidationDataset
 
 torch._dynamo.config.capture_scalar_outputs = True
 torch._dynamo.config.suppress_errors = True
@@ -58,6 +61,7 @@ def parse_arguments():
     parser.add_argument("--document_skip", default=1, type=int)
     parser.add_argument("--validate_every", default=1_000, type=int, help="Run validation after every X training shards.")
     parser.add_argument("--validation_steps", default=1, type=int, help="Number of validation steps.")
+    parser.add_argument("--validation_path", default="/cluster/work/projects/nn9851k/mariiaf/hplt/deu_Latn/tokenized_shards/validation.pt.gz")
     parser.add_argument("--log_stats_every", default=100, type=int, help="Log stats every X steps.")
     parser.add_argument("--scheduler", default="trapezoid", type=str, help="Which learning rate scheduler to use.", choices=["trapezoid", "cosine"])
     parser.add_argument("--warmup_proportion", default=0.0, type=float, help="Proportion of training to perform linear learning rate warmup for. E.g., 0.1 = 10%% of training.")
@@ -76,7 +80,6 @@ def parse_arguments():
     parser.add_argument("--max_gradient", default=1e9, type=float, help="Max value for gradient clipping.")
     parser.add_argument('--n_special_tokens', default=16, type=int, help="Number of special tokens.")
     parser.add_argument('--z_loss_weight', default=0.0, type=float, help="Weight for the z loss.")
-    parser.add_argument('--save_full_checkpoint', default=True, action="store_true", help="Whether or not to save full checkpoints.")
     parser.add_argument("--experiment", default="ablations", type=str)
     parser.add_argument("--optimizer", default="muon", type=str, choices=["muon", "lamb"])
     parser.add_argument("--untie", default=False, action="store_true")
@@ -131,11 +134,14 @@ def setup_training(args, tokenizer):
 
     seed_everything(args.seed + args.rank)
 
-    args.shard_rank = args.rank % int(os.getenv("SLURM_NNODES"))
+    number_of_shards = sum([len(glob(str(train_path) + "*")) for train_path in args.train_path])
+    if is_main_process():
+        print(f"Total number of training shards: {number_of_shards}", flush=True)
+    args.shard_rank = args.rank % number_of_shards
     torch.cuda.set_device(args.local_rank)
     args.device = torch.device("cuda", args.local_rank)
     print(f"RCCL started on device {args.device}", flush=True)
-    print(f"host: {gethostname()}, rank: {args.rank}, local_rank: {args.local_rank}")
+    print(f"host: {gethostname()}, rank: {args.rank}, local_rank: {args.local_rank}, shard_rank: {args.shard_rank}")
 
     args.vocab_size = tokenizer.get_vocab_size()
 
@@ -372,11 +378,44 @@ def get_batch(args, dataset, global_step):
     return input_ids, block_mask, target_ids, mask_p, window_length
 
 
+@torch.no_grad()
+def validation_loop(ddp_model, valid_dataset, args, global_step):
+    ddp_model = ddp_model.eval()
+
+    # Initialize the progress bar
+    progress_bar = tqdm(total=args.validation_steps, initial=global_step, disable=not is_main_process(), desc="Validation iteration")
+
+    losses, accuracies = [], []
+    for step in range(args.validation_steps):
+        next_batch = old_get_batch(args, valid_dataset, global_step)
+        input_ids, target_ids, sequence_lengths, mask_p = next_batch 
+        output = ddp_model(input_ids, sequence_lengths, target_ids)
+        loss, accuracy = output.loss, output.accuracy
+
+        # accumulate the metrics across GPUs
+        metrics = torch.stack([loss, accuracy])
+        dist.all_reduce(metrics, dist.ReduceOp.AVG)
+        loss, accuracy = metrics.tolist()
+        losses.append(loss)
+        accuracies.append(accuracy)
+        progress_bar.update()
+    # log the metrics
+    if is_main_process():
+        wandb.log(
+            {
+                "val/loss": mean(losses),
+                "val/accuracy": mean(accuracies) * 100.0,
+            },
+            step=global_step
+        )
+    progress_bar.close()
+
+
 def training_loop(model, ddp_model, train_dataset, optimizers, schedulers, global_step, args):
     model = model.train()
     model.zero_grad(set_to_none=True)
 
-    # initialize the dataloader and the metrics
+    # initialize the metrics
     total_loss, total_accuracy, total_z_loss, total_mask_p, total_grad_norm = 0.0, 0.0, 0.0, 0.0, 0.0
 
     # calculate the number of forward passes to perform
@@ -392,7 +431,7 @@ def training_loop(model, ddp_model, train_dataset, optimizers, schedulers, globa
     for local_step in range(num_steps):
         next_batch = old_get_batch(args, train_dataset, global_step)
 
-        input_ids, target_ids, doc_ids, mask_p = next_batch
+        input_ids, target_ids, doc_ids, mask_p = next_batch # doc_ids are sequence_lengths
 
         # forward pass, do a more detailed check of the model every 100 steps
         # with ModelLogger(enable=global_step % 100 == 0, module=model):
@@ -488,12 +527,10 @@ def training_loop(model, ddp_model, train_dataset, optimizers, schedulers, globa
         model.zero_grad(set_to_none=True)
         total_loss, total_accuracy, total_z_loss, total_mask_p, total_grad_norm = 0.0, 0.0, 0.0, 0.0, 0.0
 
-        global_step += 1
-        progress_bar.update()
-
         # save a backup of the model and the full training state
-        if global_step % args.save_every == 0:
-            save(model, optimizers, schedulers, global_step, train_dataset, args)
+        if args.save_every:
+            if global_step % args.save_every == 0:
+                save(model, optimizers, schedulers, global_step, train_dataset, args)
 
         # save a checkpoint of the model and full training state
         if global_step % args.checkpoint_every == 0:
@@ -505,6 +542,8 @@ def training_loop(model, ddp_model, train_dataset, optimizers, schedulers, globa
             return
 
         model = update_window_length(global_step, args, model)
+        global_step += 1
+        progress_bar.update()
 
     progress_bar.close()
 
@@ -566,8 +605,9 @@ if __name__ == "__main__":
     tokenizer = Tokenizer.from_file(str(args.tokenizer_path))
     setup_training(args, tokenizer)
     model, ddp_model, optimizers, schedulers, global_step = prepare_model_and_optimizer(args)
+    valid_dataset = ValidationDataset([args.validation_path], args.dataset_weights, tokenizer, args, args.max_seq_length, args.shard_rank)
+    validation_loop(ddp_model, valid_dataset, args, global_step)
     train_dataset = load_train_dataset(args, tokenizer)
-
     training_loop(model, ddp_model, train_dataset, optimizers, schedulers, global_step, args)
 
     save(model, optimizers, schedulers, args.max_steps, train_dataset, args)
