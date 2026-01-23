@@ -28,7 +28,10 @@ class Dataset:
                 if not args.train_format == "pt.gz":
                     documents = torch.load("-".join([str(dataset), f"{rank:03d}.bin"]), weights_only=False)
                 else:
-                    with gzip.GzipFile("-".join([str(dataset), f"{rank:03d}.{args.train_format}"]), 'rb') as f:
+                    shard_path = "-".join([str(dataset), f"{rank:03d}.{args.train_format}"])
+                    if not os.path.exists(shard_path):
+                        shard_path = "_".join([str(dataset), f"{rank:05d}.{args.train_format}"])
+                    with gzip.GzipFile(shard_path, 'rb') as f:
                         documents = torch.load(f, weights_only=False)
                 segments = []
                 for i, document in enumerate(documents):

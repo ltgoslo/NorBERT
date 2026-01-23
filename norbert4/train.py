@@ -411,7 +411,7 @@ def validation_loop(ddp_model, valid_dataset, args, global_step):
     progress_bar.close()
 
 
-def training_loop(model, ddp_model, train_dataset, optimizers, schedulers, global_step, args):
+def training_loop(model, ddp_model, train_dataset, valid_dataset, optimizers, schedulers, global_step, args):
     model = model.train()
     model.zero_grad(set_to_none=True)
 
@@ -536,6 +536,9 @@ def training_loop(model, ddp_model, train_dataset, optimizers, schedulers, globa
         if global_step % args.checkpoint_every == 0:
             save_checkpoint(model, optimizers, schedulers, global_step, train_dataset, args)
 
+        if global_step % args.validate_every == 0:
+            validation_loop(ddp_model, valid_dataset, args, global_step)
+
         # Exiting the training due to hitting max steps
         if global_step >= args.max_steps:
             progress_bar.close()
@@ -608,7 +611,7 @@ if __name__ == "__main__":
     valid_dataset = ValidationDataset([args.validation_path], args.dataset_weights, tokenizer, args, args.max_seq_length, args.shard_rank)
     validation_loop(ddp_model, valid_dataset, args, global_step)
     train_dataset = load_train_dataset(args, tokenizer)
-    training_loop(model, ddp_model, train_dataset, optimizers, schedulers, global_step, args)
+    training_loop(model, ddp_model, train_dataset, valid_dataset, optimizers, schedulers, global_step, args)
 
     save(model, optimizers, schedulers, args.max_steps, train_dataset, args)
 

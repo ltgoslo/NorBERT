@@ -1,0 +1,39 @@
+{
+    "architectures": [
+        "GptBertForMaskedLM"
+    ],
+    "auto_map": {
+        "AutoConfig": "configuration_gptbert.GptBertConfig",
+        "AutoModel": "modeling_gptbert.GptBertModel",
+        "AutoModelForCausalLM": "modeling_gptbert.GptBertForCausalLM",
+        "AutoModelForMaskedLM": "modeling_gptbert.GptBertForMaskedLM",
+        "AutoModelForSequenceClassification": "modeling_gptbert.GptBertForSequenceClassification",
+        "AutoModelForTokenClassification": "modeling_gptbert.GptBertForTokenClassification",
+        "AutoModelForQuestionAnswering": "modeling_gptbert.GptBertForQuestionAnswering",
+        "AutoModelForMultipleChoice": "modeling_gptbert.GptBertForMultipleChoice"
+    },
+    "unk_token_id": 1,
+    "bos_token_id": 2,
+    "eos_token_id": 3,
+    "pad_token_id": 0,
+    "mask_token_id": 4,
+    "hidden_size": 640,
+    "intermediate_size": 1664,
+    "max_sequence_length": 16384,
+    "num_layers": 24,
+    "attention_dropout": 0.0,
+    "hidden_dropout": 0.0,
+    "embedding_dropout": 0.1,
+    "classifier_dropout": 0.2,
+    "layer_norm_eps": 1e-07,
+    "query_key_head_size": 64,
+    "value_head_size": 64,
+    "num_attention_heads": 10,
+    "rope_theta": 160000,
+    "vocab_size": 51200,
+    "local_global_ratio": 4,
+    "global_window_length": 8192,
+    "local_window_length": 256,
+    "deterministic_flash_attn": false,
+    "use_cache": false
+  }

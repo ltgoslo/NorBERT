@@ -7,7 +7,8 @@
 #SBATCH --cpus-per-task=7
 #SBATCH --partition=accel
 #SBATCH --mem=0
-#SBATCH --time=48:00:00
+#SBATCH --time=72:00:00
+#SBATCH --output=/cluster/work/projects/nn9851k/mariiaf/hplt/logs/train-%j.out
 
 echo "SLURM_TASKS_PER_NODE: $SLURM_TASKS_PER_NODE"
 echo "SLURM_JOB_NODELIST: $SLURM_JOB_NODELIST"
@@ -16,7 +17,8 @@ echo "SLURM_NODELIST: $SLURM_NODELIST"
 echo "SLURM_NTASKS: $SLURM_NTASKS"
 
 SIF="/cluster/projects/nn9851k/containers/pytorch2.7_cu2.9_py3.12_arm_nlpl.sif"
-
+LANGUAGE=${1}
+echo $LANGUAGE
 export WORLD_SIZE=$SLURM_NTASKS
 master_addr=$(scontrol show hostnames "$SLURM_JOB_NODELIST" | head -n 1)
 export MASTER_ADDR=$master_addr
@@ -24,11 +26,11 @@ echo "MASTER_ADDR="$MASTER_ADDR
 BATCH_SIZE=1
 CMD="python3 train.py \
 --train_path \
-/cluster/work/projects/nn9851k/mariiaf/hplt/deu_Latn/tokenized_shards_8/train \
---tokenizer_path /cluster/work/projects/nn9851k/mariiaf/hplt/deu_Latn/tokenizer.json \
---output_dir /cluster/work/projects/nn9851k/mariiaf/hplt/deu_Latn/norbert_2_nodes \
+/cluster/work/projects/nn9851k/mariiaf/hplt/$LANGUAGE/tokenized_shards/train \
+--tokenizer_path /cluster/work/projects/nn9851k/mariiaf/hplt/$LANGUAGE/tokenizer.json \
+--output_dir /cluster/work/projects/nn9851k/mariiaf/hplt/$LANGUAGE/norbert_2_nodes \
 --dataset_weights 1.0 \
---name NorBERT4_base_deu_Latn_2_nodes \
+--name NorBERT4_base_$LANGUAGE \
 --max_steps 31250 \
 --config_file configs/base.json \
 --cooldown_proportion 0.2 \
@@ -42,14 +44,16 @@ CMD="python3 train.py \
 --local_batch_size $BATCH_SIZE \
 --max_seq_length $((8192*2)) \
 --optimizer muon \
---experiment NorBERT4_base_deu_Latn_2_nodes \
+--experiment NorBERT4_base_$LANGUAGE \
 --global_batch_size 256 \
 --momentum 0.95 \
 --hybrid_numerator 7 \
 --hybrid_denominator 8 \
 --wd_scales \
 --checkpoint_every 3125 \
---save_every 0"
+--save_every 0 \
+--validation_steps 10 \
+--validate_every 3125"
 
 echo $CMD
 
