@@ -3,17 +3,17 @@ from transformers import AutoTokenizer, AutoModelForMaskedLM
 
 # Import model
 tokenizer = AutoTokenizer.from_pretrained(
-    "/cluster/work/projects/nn9851k/mariiaf/hplt/hplt_hf_models/deu_Latn_6250/"
+    "/cluster/work/projects/nn9851k/mariiaf/hplt/hplt_hf_models/deu_Latn_9375/"
 )
 model = AutoModelForMaskedLM.from_pretrained(
-    "/cluster/work/projects/nn9851k/mariiaf/hplt/hplt_hf_models/deu_Latn_6250/",
+    "/cluster/work/projects/nn9851k/mariiaf/hplt/hplt_hf_models/deu_Latn_9375/",
     trust_remote_code=True
 )
 model = model.eval()
 
 # Tokenize text (with a mask token inside)
 input_text = tokenizer(
-    f"Jetzt wuenschen sie sich eine{tokenizer.mask_token} Wohnung.",
+    f"Ich suche eine {tokenizer.mask_token} Wohnung.",
     return_tensors="pt",
 )
 # Inference

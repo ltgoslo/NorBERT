@@ -373,7 +373,7 @@ class SelfAttention(nn.Module):
             self.rope_embedding = RotaryPositionalEmbeddings(config, theta)
 
         self.scale = 1.0 / math.sqrt(self.d_qk)
-        self.lambdas = nn.Parameter(torch.tensor([0.5]))
+        #self.lambdas = nn.Parameter(torch.tensor([0.5]))
 
         self.sequence_length = config.max_sequence_length
         self.is_causal = config.is_decoder
@@ -443,9 +443,9 @@ class SelfAttention(nn.Module):
             query = ((self.q_scale + 1.0).unsqueeze(0) * self.q_norm(query.float())).type_as(query)
             key = ((self.k_scale + 1.0).unsqueeze(0) * self.k_norm(key.float())).type_as(key)
 
-            if v1 is None:
-                v1 = value
-            value = (1 - self.lambdas[0]) * value + self.lambdas[0] * v1
+            # if v1 is None:
+            #     v1 = value
+            # value = (1 - self.lambdas[0]) * value + self.lambdas[0] * v1
 
             # Prepare qkv for FlashAttention
             qkv = torch.stack([query, key, value], dim=1)  # (total_seqlen, 3, num_heads, head_dim)
@@ -486,10 +486,10 @@ class SelfAttention(nn.Module):
             query = ((self.q_scale + 1.0).unsqueeze(1).unsqueeze(0) * self.q_norm(query.float())).type_as(query)
             key = ((self.k_scale + 1.0).unsqueeze(1).unsqueeze(0) * self.k_norm(key.float())).type_as(key)
 
-            if v1 is None:
-                v1 = value
-            else:
-                value = (1 - self.lambdas[0]) * value + self.lambdas[0] * v1
+            # if v1 is None:
+            #     v1 = value
+            # else:
+            #     value = (1 - self.lambdas[0]) * value + self.lambdas[0] * v1
 
             # Apply rotary embeddings
             query = self.rope_embedding(query)
@@ -526,25 +526,43 @@ class FeedForward(nn.Module):
 
 
 class Layer(nn.Module):
-    def __init__(self, config: GptBertConfig, layer_idx: int):
+
+    def __init__(self, config: ModelConfig, layer_idx: int) -> None:
         super().__init__()
+
+        self.attention: SelfAttention
+        self.mlp: FeedForward
 
         self.attention = SelfAttention(config, layer_idx)
         self.mlp = FeedForward(config)
-        self.lambdas = nn.Parameter(torch.tensor([0., 0., 1., 0., 1., 0.]))
+        self.lambdas_v = nn.Parameter(torch.tensor([1.0, 0.0]))
+        self.lambdas_qk = nn.Parameter(torch.tensor([1.0, 0.0]))
+        self.lambdas_mlp = nn.Parameter(torch.tensor([1.0, 1.0, 0.0]))
+        self.lambdas_out = nn.Parameter(torch.tensor([1.0, 1.0, 1.0, 0.0]))
 
-    def set_window_length(self, window_length: int):
+    def set_window_length(self, window_length: int) -> None:
         self.attention.set_window_length(window_length)
 
-    def forward(self, hidden_layer: torch.Tensor, embeddings: torch.Tensor, v1: torch.Tensor | None, padding_info):
-        attention_output = (1 - self.lambdas[0]) * hidden_layer + self.lambdas[0] * embeddings
-        qk_layer = (1 - self.lambdas[1]) * hidden_layer + self.lambdas[1] * embeddings
-        mlp_layer = F.softplus(self.lambdas[2]) * ((1 - self.lambdas[3]) * hidden_layer + self.lambdas[3] * embeddings)
+    def normalize_lambda(self, lambdas: torch.Tensor) -> torch.Tensor:
+        lambdas = lambdas / (lambdas.abs().mean() + 1e-6)
+        return lambdas
 
-        attention_output, v1 = self.attention(attention_output, qk_layer, v1, padding_info)
-        mlp_layer = mlp_layer + attention_output
-        hidden_layer = F.softplus(self.lambdas[4]) * ((1 - self.lambdas[5]) * hidden_layer + self.lambdas[5] * embeddings)
-        output = hidden_layer + attention_output + self.mlp(mlp_layer)
+    def forward(self, hidden_layer: torch.Tensor, embeddings: torch.Tensor, v1: torch.Tensor | None, padding_info):
+        output: torch.Tensor
+
+        lambdas_v = self.normalize_lambda(self.lambdas_v)
+        lambdas_qk = self.normalize_lambda(self.lambdas_qk)
+        lambdas_mlp = self.normalize_lambda(self.lambdas_mlp)
+        lambdas_out = self.normalize_lambda(self.lambdas_out)
+
+        v_layer = (lambdas_v[0] * hidden_layer) + (lambdas_v[1] * embeddings)
+        qk_layer = (lambdas_qk[0] * hidden_layer) + (lambdas_qk[1] * embeddings)
+        attention_output, v1 = self.attention(v_layer, qk_layer, v1, padding_info)
+
+        mlp_layer = (lambdas_mlp[0] * attention_output) + (lambdas_mlp[1] * hidden_layer) + (lambdas_mlp[2] * embeddings)
+        mlp_layer = self.mlp(mlp_layer)
+
+        output = (lambdas_out[0] * mlp_layer) + (lambdas_out[1] * attention_output) + (lambdas_out[2] * hidden_layer) + (lambdas_out[3] * embeddings)
 
         return output, v1
 
