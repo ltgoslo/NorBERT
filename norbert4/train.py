@@ -89,6 +89,7 @@ def parse_arguments():
     parser.add_argument("--cls_token", default="[CLS]")
     parser.add_argument("--pad_token", default="[PAD]")
     parser.add_argument("--train_format", default="pt.gz")
+    parser.add_argument("--window_update", default="2,4,8,16,16")
     args = parser.parse_args()
 
     args.output_dir.mkdir(parents=True, exist_ok=True)
@@ -102,6 +103,7 @@ def setup_training(args, tokenizer):
     assert torch.cuda.is_available()
     args.n_gpu = torch.cuda.device_count()
     args.tokens_per_batch = args.global_batch_size * args.max_seq_length
+    args.window_update = tuple([int(number) for number in args.window_update.split(",")])
     if args.max_steps is None:
         args.max_steps = (args.number_of_tokens // args.tokens_per_batch) + 1
     else:
@@ -134,10 +136,7 @@ def setup_training(args, tokenizer):
 
     seed_everything(args.seed + args.rank)
 
-    number_of_shards = sum([len(glob(str(train_path) + "*")) for train_path in args.train_path])
-    if is_main_process():
-        print(f"Total number of training shards: {number_of_shards}", flush=True)
-    args.shard_rank = args.rank % number_of_shards
+    args.shard_rank = args.rank % args.number_of_shards
     torch.cuda.set_device(args.local_rank)
     args.device = torch.device("cuda", args.local_rank)
     print(f"RCCL started on device {args.device}", flush=True)
@@ -323,15 +322,15 @@ def old_bidirectional_mask_mode(sequence_lengths, b, _, q_idx, kv_idx):
 @torch.no_grad()
 def update_window_length(global_step, args, model):
     if (global_step + 1) / args.max_steps >= 0.9:
-        window_length = args.max_seq_length // 2
+        window_length = args.max_seq_length // args.window_update[0]
     elif (global_step + 1) / args.max_steps >= 0.8:
-        window_length = args.max_seq_length // 4
+        window_length = args.max_seq_length // args.window_update[1]
     elif (global_step + 1) / args.max_steps >= 0.7:
-        window_length = args.max_seq_length // 8
+        window_length = args.max_seq_length // args.window_update[2]
     elif (global_step + 1) / args.max_steps >= 0.5:
-        window_length = args.max_seq_length // 16
+        window_length = args.max_seq_length // args.window_update[3]
     else:
-        window_length = args.max_seq_length // 16
+        window_length = args.max_seq_length // args.window_update[4]
 
     if window_length != args.window_length:
         args.window_length = window_length
@@ -604,7 +603,11 @@ def load_train_dataset(args, tokenizer):
 
 if __name__ == "__main__":
     args = parse_arguments()
-
+    args.number_of_shards = sum([len(glob(str(train_path) + "*")) for train_path in args.train_path])
+    if is_main_process():
+        print(f"Total number of training shards: {args.number_of_shards}", flush=True)
+    assert args.number_of_shards > 0
+    assert args.number_of_shards <= int(os.getenv("SLURM_NTASKS"))
     tokenizer = Tokenizer.from_file(str(args.tokenizer_path))
     setup_training(args, tokenizer)
     model, ddp_model, optimizers, schedulers, global_step = prepare_model_and_optimizer(args)

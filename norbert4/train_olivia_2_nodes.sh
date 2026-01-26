@@ -26,7 +26,7 @@ echo "MASTER_ADDR="$MASTER_ADDR
 BATCH_SIZE=1
 CMD="python3 train.py \
 --train_path \
-/cluster/work/projects/nn9851k/mariiaf/hplt/$LANGUAGE/tokenized_shards/train \
+/cluster/work/projects/nn9851k/mariiaf/hplt/$LANGUAGE/tokenized_shards_8/train \
 --tokenizer_path /cluster/work/projects/nn9851k/mariiaf/hplt/$LANGUAGE/tokenizer.json \
 --output_dir /cluster/work/projects/nn9851k/mariiaf/hplt/$LANGUAGE/norbert_2_nodes \
 --dataset_weights 1.0 \
@@ -53,7 +53,8 @@ CMD="python3 train.py \
 --checkpoint_every 3125 \
 --save_every 0 \
 --validation_steps 10 \
---validate_every 3125"
+--validate_every 3125 \
+--window_update 4,4,8,16,16 ${@:2}"
 
 echo $CMD
 
