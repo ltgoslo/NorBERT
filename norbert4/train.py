@@ -526,6 +526,9 @@ def training_loop(model, ddp_model, train_dataset, valid_dataset, optimizers, sc
         model.zero_grad(set_to_none=True)
         total_loss, total_accuracy, total_z_loss, total_mask_p, total_grad_norm = 0.0, 0.0, 0.0, 0.0, 0.0
 
+        global_step += 1
+        progress_bar.update()
+
         # save a backup of the model and the full training state
         if args.save_every:
             if global_step % args.save_every == 0:
@@ -544,8 +547,7 @@ def training_loop(model, ddp_model, train_dataset, valid_dataset, optimizers, sc
             return
 
         model = update_window_length(global_step, args, model)
-        global_step += 1
-        progress_bar.update()
+        
 
     progress_bar.close()
 

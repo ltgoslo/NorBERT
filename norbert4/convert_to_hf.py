@@ -27,15 +27,17 @@ def convert_to_hf(
         all_checkpoints,
         model_directory,
 ):
-    checkpointing_steps = [6250]
+    checkpointing_steps = [31250]
     checkpoints_directory = os.path.join(
-        input_model_directory, language, model_directory, f"NorBERT4_base_{language}_2_nodes",
+        input_model_directory, language, model_directory, f"NorBERT4_base_{language}",
     )
     if all_checkpoints:
         print(f"Files in the checkpoints_directory: {os.listdir(checkpoints_directory)}")
-        checkpointing_steps = [
-            int(re.search(STEP_PATTERN, bin_name).group(0)) for bin_name in os.listdir(checkpoints_directory)
-        ]
+        for bin_name in os.listdir(checkpoints_directory):
+            step_num = re.search(STEP_PATTERN, bin_name)
+            if step_num is not None:
+                checkpointing_steps.append(int(step_num.group(0)))
+             
         print(f"Saving steps {checkpointing_steps}")
     for step in checkpointing_steps:
         step_output_model_directory = os.path.join(output_model_directory, language+f'_{step}')

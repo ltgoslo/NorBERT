@@ -2,12 +2,13 @@
 
 #SBATCH --job-name=SANITY
 #SBATCH --account=nn10029k
-#SBATCH --time=1:00:00
+#SBATCH --time=0:15:00
 #SBATCH --mem-per-cpu=7G
 #SBATCH --cpus-per-task=7
 #SBATCH --nodes=1
 #SBATCH --ntasks-per-node=1
 #SBATCH --partition=normal
+#SBATCH --output=sanity-%j.out
 
 set -o errexit  # Exit the script on any error
 set -o nounset  # Treat any unset variables as an error
