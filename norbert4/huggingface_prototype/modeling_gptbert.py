@@ -627,15 +627,19 @@ class GptBertPreTrainedModel(PreTrainedModel):
     def _init_weights(self, module):
         std = math.sqrt(2.0 / (5.0 * self.hidden_size))
 
-        if isinstance(module, nn.Linear) or isinstance(module, CastedLinearIn):
-            nn.init.trunc_normal_(module.weight.data, mean=0.0, std=std, a=-2 * std, b=2 * std)
-            if module.bias is not None:
-                module.bias.data.zero_()
-        elif isinstance(module, nn.Embedding):
+        if isinstance(module, MultiCastedLinearOrthoIn):
+            for weight in module.weights:
+                nn.init.trunc_normal_(weight.data, mean=0.0, std=std, a=-2 * std, b=2 * std)
+        elif isinstance(module, (nn.Linear, nn.Embedding)):
             nn.init.trunc_normal_(module.weight.data, mean=0.0, std=std, a=-2 * std, b=2 * std)
         elif isinstance(module, nn.LayerNorm):
+            if module.weight is not None:
+                module.weight.data.fill_(1.0)
+
+        if hasattr(module, 'bias') and module.bias is not None:
             module.bias.data.zero_()
-            module.weight.data.fill_(1.0)
+        if hasattr(module, 'scale') and isinstance(module.scale, nn.Parameter):
+            module.scale.data.fill_(1.0)
 
 
 class GptBertModel(GptBertPreTrainedModel):
