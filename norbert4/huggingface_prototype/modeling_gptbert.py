@@ -862,13 +862,6 @@ class GptBertForCausalLM(GptBertModel):
             subword_prediction_flatten = subword_prediction[:, :-1].flatten(0, 1)
             causal_lm_loss = F.cross_entropy(subword_prediction_flatten, labels_flatten)
 
-        if not return_dict:
-            output = (
-                subword_prediction,
-                *([contextualized_embeddings] if output_hidden_states else [])
-            )
-            return ((causal_lm_loss,) + output) if masked_lm_loss is not None else output
-
         return CausalLMOutput(
             loss=causal_lm_loss,
             logits=subword_prediction,
@@ -976,13 +969,6 @@ class GptBertForSequenceClassification(GptBertModel):
                 loss_fct = nn.BCEWithLogitsLoss()
                 loss = loss_fct(logits, labels)
 
-        if not return_dict:
-            output = (
-                logits,
-                *([contextualized_embeddings] if output_hidden_states else [])
-            )
-            return ((loss,) + output) if loss is not None else output
-
         return SequenceClassifierOutput(
             loss=loss,
             logits=logits,
@@ -1021,19 +1007,10 @@ class GptBertForTokenClassification(GptBertModel):
             loss_fct = nn.CrossEntropyLoss()
             loss = loss_fct(logits.view(-1, self.num_labels), labels.view(-1))
 
-        if not return_dict:
-            output = (
-                logits,
-                *([contextualized_embeddings] if output_hidden_states else []),
-                *([attention_probs] if output_attentions else [])
-            )
-            return ((loss,) + output) if loss is not None else output
-
         return TokenClassifierOutput(
             loss=loss,
             logits=logits,
             hidden_states=contextualized_embeddings if output_hidden_states else None,
-            attentions=attention_probs if output_attentions else None
         )
 
 
@@ -1086,14 +1063,6 @@ class GptBertForQuestionAnswering(GptBertModel):
             end_loss = loss_fct(end_logits, end_positions)
             total_loss = (start_loss + end_loss) / 2
 
-        if not return_dict:
-            output = (
-                start_logits,
-                end_logits,
-                *([contextualized_embeddings] if output_hidden_states else [])
-            )
-            return ((total_loss,) + output) if total_loss is not None else output
-
         return QuestionAnsweringModelOutput(
             loss=total_loss,
             start_logits=start_logits,
@@ -1138,13 +1107,6 @@ class GptBertForMultipleChoice(GptBertModel):
         if labels is not None:
             loss_fct = nn.CrossEntropyLoss()
             loss = loss_fct(reshaped_logits, labels)
-
-        if not return_dict:
-            output = (
-                reshaped_logits,
-                *([contextualized_embeddings] if output_hidden_states else [])
-            )
-            return ((loss,) + output) if loss is not None else output
 
         return MultipleChoiceModelOutput(
             loss=loss,
