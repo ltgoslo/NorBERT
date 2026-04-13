@@ -5,7 +5,7 @@ import pandas as pd
 import torch
 from torch.utils import data
 from torch.optim import AdamW
-from transformers import BertForSequenceClassification, AutoTokenizer
+from transformers import AutoModelForSequenceClassification, AutoTokenizer
 import argparse
 import logging
 from datasets import ClassLabel
@@ -51,7 +51,7 @@ if __name__ == "__main__":
         "--model",
         "-m",
         help="Path to a BERT model (/cluster/shared/nlpl/data/vectors/latest/221/ "
-             "or ltgoslo/norbert2 are possible options)",
+        "or ltg/norbert4-large are possible options)",
         required=True,
     )
     arg(
@@ -72,14 +72,11 @@ if __name__ == "__main__":
         help="Path to a sentence classification test set",
         required=True,
     )
-    arg("--gpu", help="Use GPU?", dest="gpu", action="store_true")
-    arg("--no-gpu", help="Use GPU?", dest="gpu", action="store_false")
     arg("--epochs", "-e", type=int, help="Number of epochs", default=5)
     arg("--maxl", "-l", type=int, help="Max length", default=256)
     arg("--bsize", "-b", type=int, help="Batch size", default=16)
     arg("--save", "-s", help="Where to save the finetuned model", default="ft_bert")
 
-    parser.set_defaults(gpu=True)
     args = parser.parse_args()
 
     modelname = args.model
@@ -108,9 +105,10 @@ if __name__ == "__main__":
     )
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    tokenizer = AutoTokenizer.from_pretrained(modelname, use_fast=False)
-    model = BertForSequenceClassification.from_pretrained(modelname,
-                                                          num_labels=num_classes).to(device)
+    tokenizer = AutoTokenizer.from_pretrained(modelname)
+    model = AutoModelForSequenceClassification.from_pretrained(
+        modelname, trust_remote_code=True, num_labels=num_classes
+    ).to(device)
     model.train()
 
     optimizer = AdamW(model.parameters(), lr=1e-5)
@@ -135,8 +133,12 @@ if __name__ == "__main__":
 
     logger.info(f"Tokenizing with max length {args.maxl}...")
 
-    train_labels_tensor, train_encoding = encoder(text_labels, train_texts, tokenizer, device)
-    test_labels_tensor, test_encoding = encoder(test_labels, test_texts, tokenizer, device)
+    train_labels_tensor, train_encoding = encoder(
+        text_labels, train_texts, tokenizer, device
+    )
+    test_labels_tensor, test_encoding = encoder(
+        test_labels, test_texts, tokenizer, device
+    )
     dev_labels_tensor, dev_encoding = encoder(dev_labels, dev_texts, tokenizer, device)
 
     input_ids = train_encoding["input_ids"]
@@ -225,8 +227,8 @@ if __name__ == "__main__":
             test_labels += label.tolist()
         logger.info(
             metrics.classification_report(
-                c2l.int2str(test_labels), c2l.int2str(test_predictions),
-                zero_division=0)
+                c2l.int2str(test_labels), c2l.int2str(test_predictions), zero_division=0
+            )
         )
 
         # We can try the fine-tuned model on a couple of sentences:
