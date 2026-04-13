@@ -606,6 +606,11 @@ def load_train_dataset(args, tokenizer):
 if __name__ == "__main__":
     args = parse_arguments()
     args.number_of_shards = sum([len(glob(str(train_path) + "*")) for train_path in args.train_path])
+    args.validation_path = os.path.join(
+        os.path.dirname(args.train_path[0]),
+        "validation" + os.extsep + args.train_format,
+    )
+    print(f"Validation path: {args.validation_path}", flush=True)
     if is_main_process():
         print(f"Total number of training shards: {args.number_of_shards}", flush=True)
     assert args.number_of_shards > 0
@@ -619,4 +624,4 @@ if __name__ == "__main__":
     training_loop(model, ddp_model, train_dataset, valid_dataset, optimizers, schedulers, global_step, args)
 
     save(model, optimizers, schedulers, args.max_steps, train_dataset, args)
-
+    dist.destroy_process_group()
