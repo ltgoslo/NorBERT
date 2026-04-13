@@ -25,7 +25,6 @@ from typing import TYPE_CHECKING, Optional, Union, Tuple, List
 
 logger = logging.get_logger(__name__)
 
-
 # Workaround for transformers < 4.36.0 check_imports issue
 # See: https://github.com/huggingface/transformers/issues/28459
 try:
@@ -92,7 +91,8 @@ class CastedLinearIn(nn.Linear):
         self.scale = nn.Parameter(torch.ones(in_features))
 
     def forward(self, x):
-        return F.linear(x, (self.weight * (self.scale + 1.0).unsqueeze(0)).type_as(x), bias=self.bias.type_as(x) if self.bias is not None else None)
+        return F.linear(x, (self.weight * (self.scale + 1.0).unsqueeze(0)).type_as(x),
+                        bias=self.bias.type_as(x) if self.bias is not None else None)
 
 
 class MultiCastedLinearOrthoIn(nn.Module):
@@ -114,7 +114,9 @@ class MultiCastedLinearOrthoIn(nn.Module):
         self.scale = nn.Parameter(torch.ones(in_features))
 
     def forward(self, x):
-        return F.linear(x, (torch.cat([weight for weight in self.weights], dim=0) * (self.scale + 1.0).unsqueeze(0)).type_as(x), bias=self.bias.type_as(x) if self.bias is not None else None)
+        return F.linear(x, (
+                    torch.cat([weight for weight in self.weights], dim=0) * (self.scale + 1.0).unsqueeze(0)).type_as(x),
+                        bias=self.bias.type_as(x) if self.bias is not None else None)
 
 
 class GeGLU(nn.Module):
@@ -128,7 +130,8 @@ class Embedding(nn.Module):
         super().__init__()
 
         self.word_embedding = nn.Embedding(config.vocab_size, config.hidden_size)
-        self.word_norm = nn.LayerNorm(config.hidden_size, eps=config.layer_norm_eps, elementwise_affine=False, bias=False)
+        self.word_norm = nn.LayerNorm(config.hidden_size, eps=config.layer_norm_eps, elementwise_affine=False,
+                                      bias=False)
         self.word_scale = nn.Parameter(torch.zeros(config.hidden_size))
         self.dropout = nn.Dropout(config.embedding_dropout)
 
@@ -179,7 +182,9 @@ class Classifier(nn.Module):
 
 
 # from https://github.com/huggingface/transformers/blob/main/src/transformers/models/modernbert/modeling_modernbert.py
-def flash_attention_forward(qkv: torch.Tensor, rotary_emb: UnpaddedRotaryEmbedding, cu_seqlens: torch.Tensor, max_seqlen: int, causal: bool, local_attention: Tuple[int, int], dropout_p: float, deterministic: bool, target_dtype: torch.dtype = torch.bfloat16, **_kwargs):
+def flash_attention_forward(qkv: torch.Tensor, rotary_emb: UnpaddedRotaryEmbedding, cu_seqlens: torch.Tensor,
+                            max_seqlen: int, causal: bool, local_attention: Tuple[int, int], dropout_p: float,
+                            deterministic: bool, target_dtype: torch.dtype = torch.bfloat16, **_kwargs):
     qkv = rotary_emb(qkv, cu_seqlens=cu_seqlens, max_seqlen=max_seqlen)
 
     convert_dtype = qkv.dtype not in (torch.float16, torch.bfloat16)
@@ -223,7 +228,8 @@ class ApplyRotaryEmbUnpad(torch.autograd.Function):
         # we get the same tensor
         # qk = rearrange(qkv[:, :2], "b_s t h d -> b_s (t h) d")
         qk = qkv[:, :2].view(total_nnz, -1, headdim)
-        apply_rotary(qk, cos, sin, seqlen_offsets=0, cu_seqlens=cu_seqlens, max_seqlen=max_seqlen, interleaved=False, inplace=True)
+        apply_rotary(qk, cos, sin, seqlen_offsets=0, cu_seqlens=cu_seqlens, max_seqlen=max_seqlen, interleaved=False,
+                     inplace=True)
 
         ctx.save_for_backward(cos, sin, cu_seqlens)
         ctx.max_seqlen = max_seqlen
@@ -263,7 +269,8 @@ class UnpaddedRotaryEmbedding(RotaryEmbedding):
         super().__init__(dim=dim, base=base, device=None, interleaved=False)
         self.max_seqlen = max_seqlen
 
-    def forward(self, qkv: torch.Tensor, cu_seqlens: torch.Tensor, max_seqlen: Optional[int] = None) -> Union[torch.Tensor, Tuple[torch.Tensor, torch.Tensor]]:
+    def forward(self, qkv: torch.Tensor, cu_seqlens: torch.Tensor, max_seqlen: Optional[int] = None) -> Union[
+        torch.Tensor, Tuple[torch.Tensor, torch.Tensor]]:
         if max_seqlen is not None:
             self._update_cos_sin_cache(max_seqlen, device=qkv.device, dtype=qkv.dtype)
 
@@ -351,11 +358,12 @@ class SelfAttention(nn.Module):
 
         self.qk_proj = MultiCastedLinearOrthoIn(self.hidden_size, [self.q_out_dim, self.k_out_dim], bias=False)
         self.v_proj = CastedLinearIn(self.hidden_size, self.v_out_dim, bias=False)
-        self.out_proj = CastedLinearIn(self.d_v*self.num_attention_heads, self.hidden_size, bias=False)
+        self.out_proj = CastedLinearIn(self.d_v * self.num_attention_heads, self.hidden_size, bias=False)
 
         self.pre_v_norm = nn.LayerNorm(config.hidden_size, eps=config.layer_norm_eps, elementwise_affine=False)
         self.pre_qk_norm = nn.LayerNorm(config.hidden_size, eps=config.layer_norm_eps, elementwise_affine=False)
-        self.inter_norm = nn.LayerNorm(self.d_v * self.num_attention_heads, eps=config.layer_norm_eps, elementwise_affine=False)
+        self.inter_norm = nn.LayerNorm(self.d_v * self.num_attention_heads, eps=config.layer_norm_eps,
+                                       elementwise_affine=False)
         self.q_norm = nn.LayerNorm(self.d_qk, eps=config.layer_norm_eps, elementwise_affine=False, bias=False)
         self.k_norm = nn.LayerNorm(self.d_qk, eps=config.layer_norm_eps, elementwise_affine=False, bias=False)
         self.k_scale = nn.Parameter(torch.ones(self.num_kv_heads, self.d_qk))
@@ -368,12 +376,13 @@ class SelfAttention(nn.Module):
 
         # Initialize rotary embeddings based on whether FlashAttention is available
         if flash_attn_varlen_qkvpacked_func is not None:
-            self.rope_embedding = UnpaddedRotaryEmbedding(dim=self.d_qk, base=theta, max_seqlen=config.max_sequence_length)
+            self.rope_embedding = UnpaddedRotaryEmbedding(dim=self.d_qk, base=theta,
+                                                          max_seqlen=config.max_sequence_length)
         else:
             self.rope_embedding = RotaryPositionalEmbeddings(config, theta)
 
         self.scale = 1.0 / math.sqrt(self.d_qk)
-        #self.lambdas = nn.Parameter(torch.tensor([0.5]))
+        # self.lambdas = nn.Parameter(torch.tensor([0.5]))
 
         self.sequence_length = config.max_sequence_length
         self.is_causal = config.is_decoder
@@ -392,7 +401,8 @@ class SelfAttention(nn.Module):
             mask = mask.tril(diagonal=self.window_length).triu(diagonal=-self.window_length)
         return mask.view(1, 1, query_length, key_length)
 
-    def attention_operation(self, query: torch.Tensor, key: torch.Tensor, value: torch.Tensor, padding_mask: Optional[torch.Tensor]) -> Tuple[torch.Tensor, torch.Tensor]:
+    def attention_operation(self, query: torch.Tensor, key: torch.Tensor, value: torch.Tensor,
+                            padding_mask: Optional[torch.Tensor]) -> Tuple[torch.Tensor, torch.Tensor]:
         """Standard attention computation with masking."""
         batch_size, _, query_length, _ = query.size()
         _, _, key_length, _ = key.size()
@@ -405,7 +415,8 @@ class SelfAttention(nn.Module):
             else:
                 attention_mask = window_mask
 
-        attention_scores = torch.bmm(query.flatten(0, 1), key.transpose(-1, -2).flatten(0, 1)) * self.scale  # shape: [B*H, Q_T, K_T]
+        attention_scores = torch.bmm(query.flatten(0, 1),
+                                     key.transpose(-1, -2).flatten(0, 1)) * self.scale  # shape: [B*H, Q_T, K_T]
         attention_scores = attention_scores.view(batch_size, self.num_attention_heads, query_length, key_length)
 
         attention_probabilities = MaskedSoftmax.apply(attention_scores, ~attention_mask, -1)
@@ -505,16 +516,17 @@ class SelfAttention(nn.Module):
         return output, v1
 
 
-class FeedForward(nn.Module):    
+class FeedForward(nn.Module):
     def __init__(self, config: GptBertConfig):
         super().__init__()
         self.pre_norm = nn.LayerNorm(config.hidden_size, eps=config.layer_norm_eps, elementwise_affine=False)
-        self.up_proj = MultiCastedLinearOrthoIn(config.hidden_size, [config.intermediate_size, config.intermediate_size], bias=False)
+        self.up_proj = MultiCastedLinearOrthoIn(config.hidden_size,
+                                                [config.intermediate_size, config.intermediate_size], bias=False)
         self.activation = GeGLU()
         self.inter_norm = nn.LayerNorm(config.intermediate_size, eps=config.layer_norm_eps, elementwise_affine=False)
         self.down_proj = CastedLinearIn(config.intermediate_size, config.hidden_size, bias=False)
         self.dropout = nn.Dropout(config.hidden_dropout)
-        
+
     def forward(self, x: torch.Tensor):
         x = self.pre_norm(x.float()).type_as(x)
         x = self.up_proj(x)
@@ -559,10 +571,12 @@ class Layer(nn.Module):
         qk_layer = (lambdas_qk[0] * hidden_layer) + (lambdas_qk[1] * embeddings)
         attention_output, v1 = self.attention(v_layer, qk_layer, v1, padding_info)
 
-        mlp_layer = (lambdas_mlp[0] * attention_output) + (lambdas_mlp[1] * hidden_layer) + (lambdas_mlp[2] * embeddings)
+        mlp_layer = (lambdas_mlp[0] * attention_output) + (lambdas_mlp[1] * hidden_layer) + (
+                    lambdas_mlp[2] * embeddings)
         mlp_layer = self.mlp(mlp_layer)
 
-        output = (lambdas_out[0] * mlp_layer) + (lambdas_out[1] * attention_output) + (lambdas_out[2] * hidden_layer) + (lambdas_out[3] * embeddings)
+        output = (lambdas_out[0] * mlp_layer) + (lambdas_out[1] * attention_output) + (
+                    lambdas_out[2] * hidden_layer) + (lambdas_out[3] * embeddings)
 
         return output, v1
 
@@ -580,14 +594,16 @@ class Encoder(nn.Module):
             else:
                 layer.set_window_length(config.local_window_length)
 
-    def forward(self, hidden_layer: torch.Tensor, padding_info, output_hidden_states=False, checkpoint_activations=False):
+    def forward(self, hidden_layer: torch.Tensor, padding_info, output_hidden_states=False,
+                checkpoint_activations=False):
         hidden_layers = [hidden_layer] if output_hidden_states else None
         v1 = None
         embeddings = hidden_layer
 
         for layer in self.layers:
             if checkpoint_activations:
-                hidden_layer, v1 = torch.utils.checkpoint.checkpoint(layer, hidden_layer, embeddings, v1, padding_info, use_reentrant=True)
+                hidden_layer, v1 = torch.utils.checkpoint.checkpoint(layer, hidden_layer, embeddings, v1, padding_info,
+                                                                     use_reentrant=True)
             else:
                 hidden_layer, v1 = layer(hidden_layer, embeddings, v1, padding_info)
 
@@ -611,15 +627,19 @@ class GptBertPreTrainedModel(PreTrainedModel):
     def _init_weights(self, module):
         std = math.sqrt(2.0 / (5.0 * self.hidden_size))
 
-        if isinstance(module, nn.Linear) or isinstance(module, CastedLinearIn):
-            nn.init.trunc_normal_(module.weight.data, mean=0.0, std=std, a=-2*std, b=2*std)
-            if module.bias is not None:
-                module.bias.data.zero_()
-        elif isinstance(module, nn.Embedding):
-            nn.init.trunc_normal_(module.weight.data, mean=0.0, std=std, a=-2*std, b=2*std)
+        if isinstance(module, MultiCastedLinearOrthoIn):
+            for weight in module.weights:
+                nn.init.trunc_normal_(weight.data, mean=0.0, std=std, a=-2 * std, b=2 * std)
+        elif isinstance(module, (nn.Linear, nn.Embedding)):
+            nn.init.trunc_normal_(module.weight.data, mean=0.0, std=std, a=-2 * std, b=2 * std)
         elif isinstance(module, nn.LayerNorm):
+            if module.weight is not None:
+                module.weight.data.fill_(1.0)
+
+        if hasattr(module, 'bias') and module.bias is not None:
             module.bias.data.zero_()
-            module.weight.data.fill_(1.0)
+        if hasattr(module, 'scale') and isinstance(module.scale, nn.Parameter):
+            module.scale.data.fill_(1.0)
 
 
 class GptBertModel(GptBertPreTrainedModel):
@@ -645,10 +665,10 @@ class GptBertModel(GptBertPreTrainedModel):
         self.embedding.word_embedding = value
 
     def get_contextualized_embeddings(
-        self,
-        input_ids: Optional[torch.Tensor] = None,
-        attention_mask: Optional[torch.Tensor] = None,
-        output_hidden_states: Optional[bool] = None
+            self,
+            input_ids: Optional[torch.Tensor] = None,
+            attention_mask: Optional[torch.Tensor] = None,
+            output_hidden_states: Optional[bool] = None
     ):
         if input_ids is not None:
             input_shape = input_ids.size()
@@ -697,24 +717,26 @@ class GptBertModel(GptBertPreTrainedModel):
         if flash_attn_varlen_qkvpacked_func is not None:
             last_layer = _pad_output(last_layer, indices, batch_size, seq_length)
             if output_hidden_states:
-                contextualized_embeddings = [_pad_output(layer, indices, batch_size, seq_length) for layer in contextualized_embeddings]
+                contextualized_embeddings = [_pad_output(layer, indices, batch_size, seq_length) for layer in
+                                             contextualized_embeddings]
             else:
                 contextualized_embeddings = None
 
         return last_layer, contextualized_embeddings
 
     def forward(
-        self,
-        input_ids: Optional[torch.Tensor] = None,
-        attention_mask: Optional[torch.Tensor] = None,
-        output_hidden_states: Optional[bool] = None,
-        output_attentions: Optional[bool] = None,
-        return_dict: Optional[bool] = None,
-        **kwargs
+            self,
+            input_ids: Optional[torch.Tensor] = None,
+            attention_mask: Optional[torch.Tensor] = None,
+            output_hidden_states: Optional[bool] = None,
+            output_attentions: Optional[bool] = None,
+            return_dict: Optional[bool] = None,
+            **kwargs
     ) -> Union[Tuple[torch.Tensor], BaseModelOutput]:
         return_dict = return_dict if return_dict is not None else self.config.use_return_dict
 
-        sequence_output, contextualized_embeddings = self.get_contextualized_embeddings(input_ids, attention_mask, output_hidden_states)
+        sequence_output, contextualized_embeddings = self.get_contextualized_embeddings(input_ids, attention_mask,
+                                                                                        output_hidden_states)
 
         if not return_dict:
             return (
@@ -741,17 +763,18 @@ class GptBertForMaskedLM(GptBertModel):
         self.classifier.emb2vocab.weight = new_embeddings
 
     def forward(
-        self,
-        input_ids: Optional[torch.Tensor] = None,
-        attention_mask: Optional[torch.Tensor] = None,
-        output_hidden_states: Optional[bool] = None,
-        return_dict: Optional[bool] = None,
-        labels: Optional[torch.LongTensor] = None,
-        **kwargs
+            self,
+            input_ids: Optional[torch.Tensor] = None,
+            attention_mask: Optional[torch.Tensor] = None,
+            output_hidden_states: Optional[bool] = None,
+            return_dict: Optional[bool] = None,
+            labels: Optional[torch.LongTensor] = None,
+            **kwargs
     ) -> Union[Tuple[torch.Tensor], MaskedLMOutput]:
         return_dict = return_dict if return_dict is not None else self.config.use_return_dict
 
-        sequence_output, contextualized_embeddings = self.get_contextualized_embeddings(input_ids, attention_mask, output_hidden_states)
+        sequence_output, contextualized_embeddings = self.get_contextualized_embeddings(input_ids, attention_mask,
+                                                                                        output_hidden_states)
         subword_prediction = self.classifier(sequence_output)
         subword_prediction = 30 * torch.sigmoid(subword_prediction / 7.5)
 
@@ -761,7 +784,8 @@ class GptBertForMaskedLM(GptBertModel):
             subword_prediction_flatten = subword_prediction[:, :-1].flatten(0, 1)
             masked_lm_loss = F.cross_entropy(subword_prediction_flatten, labels_flatten)
 
-        bos_logits = torch.zeros(subword_prediction.size(0), 1, self.config.vocab_size, dtype=subword_prediction.dtype, device=subword_prediction.device)
+        bos_logits = torch.zeros(subword_prediction.size(0), 1, self.config.vocab_size, dtype=subword_prediction.dtype,
+                                 device=subword_prediction.device)
         bos_logits[:, :, self.config.bos_token_id] = 1.0
         subword_prediction = torch.cat([bos_logits, subword_prediction[:, :-1]], dim=1)
 
@@ -808,26 +832,27 @@ class GptBertForCausalLM(GptBertModel):
         return True
 
     def forward(
-        self,
-        input_ids: torch.LongTensor = None,
-        attention_mask: Optional[torch.Tensor] = None,
-        position_ids: Optional[torch.LongTensor] = None,
-        token_type_ids: Optional[torch.Tensor] = None,
-        past_key_values: Optional[torch.Tensor] = None,
-        inputs_embeds: Optional[torch.FloatTensor] = None,
-        labels: Optional[torch.LongTensor] = None,
-        use_cache: Optional[bool] = None,
-        cache_position: Optional[torch.LongTensor] = None,
-        output_attentions: Optional[bool] = None,
-        output_hidden_states: Optional[bool] = None,
-        return_dict: Optional[bool] = None
+            self,
+            input_ids: torch.LongTensor = None,
+            attention_mask: Optional[torch.Tensor] = None,
+            position_ids: Optional[torch.LongTensor] = None,
+            token_type_ids: Optional[torch.Tensor] = None,
+            past_key_values: Optional[torch.Tensor] = None,
+            inputs_embeds: Optional[torch.FloatTensor] = None,
+            labels: Optional[torch.LongTensor] = None,
+            use_cache: Optional[bool] = None,
+            cache_position: Optional[torch.LongTensor] = None,
+            output_attentions: Optional[bool] = None,
+            output_hidden_states: Optional[bool] = None,
+            return_dict: Optional[bool] = None
     ) -> Union[Tuple, CausalLMOutput]:
 
         assert inputs_embeds is None, "inputs_embeds is not supported for now"
         assert past_key_values is None, "past_key_values is not supported for now"
         assert not use_cache, "use_cache is not supported for now"
 
-        sequence_output, contextualized_embeddings = self.get_contextualized_embeddings(input_ids, attention_mask, output_hidden_states)
+        sequence_output, contextualized_embeddings = self.get_contextualized_embeddings(input_ids, attention_mask,
+                                                                                        output_hidden_states)
         subword_prediction = self.classifier(sequence_output)
         subword_prediction = 30 * torch.sigmoid(subword_prediction / 7.5)
 
@@ -837,13 +862,6 @@ class GptBertForCausalLM(GptBertModel):
             subword_prediction_flatten = subword_prediction[:, :-1].flatten(0, 1)
             causal_lm_loss = F.cross_entropy(subword_prediction_flatten, labels_flatten)
 
-        if not return_dict:
-            output = (
-                subword_prediction,
-                *([contextualized_embeddings] if output_hidden_states else [])
-            )
-            return ((causal_lm_loss,) + output) if masked_lm_loss is not None else output
-
         return CausalLMOutput(
             loss=causal_lm_loss,
             logits=subword_prediction,
@@ -851,23 +869,23 @@ class GptBertForCausalLM(GptBertModel):
         )
 
     def prepare_inputs_for_generation(
-        self,
-        input_ids: torch.Tensor,
-        past_key_values: Optional[torch.Tensor] = None,
-        attention_mask: Optional[torch.Tensor] = None,
-        inputs_embeds: Optional[torch.Tensor] = None,
-        cache_position: Optional[torch.LongTensor] = None,
-        position_ids: Optional[torch.LongTensor] = None,
-        use_cache: bool = True,
-        num_logits_to_keep: Optional[int] = None,
-        **kwargs,
+            self,
+            input_ids: torch.Tensor,
+            past_key_values: Optional[torch.Tensor] = None,
+            attention_mask: Optional[torch.Tensor] = None,
+            inputs_embeds: Optional[torch.Tensor] = None,
+            cache_position: Optional[torch.LongTensor] = None,
+            position_ids: Optional[torch.LongTensor] = None,
+            use_cache: bool = True,
+            num_logits_to_keep: Optional[int] = None,
+            **kwargs,
     ):
         # If we have cache: let's slice `input_ids` through `cache_position`, to keep only the unprocessed tokens
         # Exception 1: when passing input_embeds, input_ids may be missing entries
         # Exception 2: some generation methods do special slicing of input_ids, so we don't need to do it here
         if past_key_values is not None:
             if inputs_embeds is not None:  # Exception 1
-                input_ids = input_ids[:, -cache_position.shape[0] :]
+                input_ids = input_ids[:, -cache_position.shape[0]:]
             elif input_ids.shape[1] != cache_position.shape[0]:  # Default case (the "else", a no op, is Exception 2)
                 input_ids = input_ids[:, cache_position]
 
@@ -876,7 +894,7 @@ class GptBertForCausalLM(GptBertModel):
             position_ids = attention_mask.long().cumsum(-1) - 1
             position_ids.masked_fill_(attention_mask == 0, 1)
             if past_key_values:
-                position_ids = position_ids[:, -input_ids.shape[1] :]
+                position_ids = position_ids[:, -input_ids.shape[1]:]
 
                 # This `clone` call is needed to avoid recapturing cuda graphs with `torch.compile`'s  `mode="reduce-overhead`, as otherwise the input `position_ids` would have various stride during the decoding. Here, simply using `.contiguous()` is not sufficient as in the batch size = 1 case, `position_ids` is already contiguous but with varying stride which retriggers a capture.
                 position_ids = position_ids.clone(memory_format=torch.contiguous_format)
@@ -914,17 +932,18 @@ class GptBertForSequenceClassification(GptBertModel):
         self.post_init()
 
     def forward(
-        self,
-        input_ids: Optional[torch.Tensor] = None,
-        attention_mask: Optional[torch.Tensor] = None,
-        output_hidden_states: Optional[bool] = None,
-        return_dict: Optional[bool] = None,
-        labels: Optional[torch.LongTensor] = None,
-        **kwargs
+            self,
+            input_ids: Optional[torch.Tensor] = None,
+            attention_mask: Optional[torch.Tensor] = None,
+            output_hidden_states: Optional[bool] = None,
+            return_dict: Optional[bool] = None,
+            labels: Optional[torch.LongTensor] = None,
+            **kwargs
     ) -> Union[Tuple[torch.Tensor], SequenceClassifierOutput]:
         return_dict = return_dict if return_dict is not None else self.config.use_return_dict
 
-        sequence_output, contextualized_embeddings = self.get_contextualized_embeddings(input_ids, attention_mask, output_hidden_states)
+        sequence_output, contextualized_embeddings = self.get_contextualized_embeddings(input_ids, attention_mask,
+                                                                                        output_hidden_states)
         logits = self.classifier(sequence_output[:, 0, :])
 
         loss = None
@@ -950,13 +969,6 @@ class GptBertForSequenceClassification(GptBertModel):
                 loss_fct = nn.BCEWithLogitsLoss()
                 loss = loss_fct(logits, labels)
 
-        if not return_dict:
-            output = (
-                logits,
-                *([contextualized_embeddings] if output_hidden_states else [])
-            )
-            return ((loss,) + output) if loss is not None else output
-
         return SequenceClassifierOutput(
             loss=loss,
             logits=logits,
@@ -976,17 +988,18 @@ class GptBertForTokenClassification(GptBertModel):
         self.post_init()
 
     def forward(
-        self,
-        input_ids: Optional[torch.Tensor] = None,
-        attention_mask: Optional[torch.Tensor] = None,
-        output_hidden_states: Optional[bool] = None,
-        return_dict: Optional[bool] = None,
-        labels: Optional[torch.LongTensor] = None,
-        **kwargs
+            self,
+            input_ids: Optional[torch.Tensor] = None,
+            attention_mask: Optional[torch.Tensor] = None,
+            output_hidden_states: Optional[bool] = None,
+            return_dict: Optional[bool] = None,
+            labels: Optional[torch.LongTensor] = None,
+            **kwargs
     ) -> Union[Tuple[torch.Tensor], TokenClassifierOutput]:
         return_dict = return_dict if return_dict is not None else self.config.use_return_dict
 
-        sequence_output, contextualized_embeddings = self.get_contextualized_embeddings(input_ids, attention_mask, output_hidden_states)
+        sequence_output, contextualized_embeddings = self.get_contextualized_embeddings(input_ids, attention_mask,
+                                                                                        output_hidden_states)
         logits = self.classifier(sequence_output)
 
         loss = None
@@ -994,19 +1007,10 @@ class GptBertForTokenClassification(GptBertModel):
             loss_fct = nn.CrossEntropyLoss()
             loss = loss_fct(logits.view(-1, self.num_labels), labels.view(-1))
 
-        if not return_dict:
-            output = (
-                logits,
-                *([contextualized_embeddings] if output_hidden_states else []),
-                *([attention_probs] if output_attentions else [])
-            )
-            return ((loss,) + output) if loss is not None else output
-
         return TokenClassifierOutput(
             loss=loss,
             logits=logits,
             hidden_states=contextualized_embeddings if output_hidden_states else None,
-            attentions=attention_probs if output_attentions else None
         )
 
 
@@ -1022,18 +1026,19 @@ class GptBertForQuestionAnswering(GptBertModel):
         self.post_init()
 
     def forward(
-        self,
-        input_ids: Optional[torch.Tensor] = None,
-        attention_mask: Optional[torch.Tensor] = None,
-        output_hidden_states: Optional[bool] = None,
-        return_dict: Optional[bool] = None,
-        start_positions: Optional[torch.Tensor] = None,
-        end_positions: Optional[torch.Tensor] = None,
-        **kwargs
+            self,
+            input_ids: Optional[torch.Tensor] = None,
+            attention_mask: Optional[torch.Tensor] = None,
+            output_hidden_states: Optional[bool] = None,
+            return_dict: Optional[bool] = None,
+            start_positions: Optional[torch.Tensor] = None,
+            end_positions: Optional[torch.Tensor] = None,
+            **kwargs
     ) -> Union[Tuple[torch.Tensor], QuestionAnsweringModelOutput]:
         return_dict = return_dict if return_dict is not None else self.config.use_return_dict
 
-        sequence_output, contextualized_embeddings = self.get_contextualized_embeddings(input_ids, attention_mask, output_hidden_states)
+        sequence_output, contextualized_embeddings = self.get_contextualized_embeddings(input_ids, attention_mask,
+                                                                                        output_hidden_states)
         logits = self.classifier(sequence_output)
 
         start_logits, end_logits = logits.split(1, dim=-1)
@@ -1058,14 +1063,6 @@ class GptBertForQuestionAnswering(GptBertModel):
             end_loss = loss_fct(end_logits, end_positions)
             total_loss = (start_loss + end_loss) / 2
 
-        if not return_dict:
-            output = (
-                start_logits,
-                end_logits,
-                *([contextualized_embeddings] if output_hidden_states else [])
-            )
-            return ((total_loss,) + output) if total_loss is not None else output
-
         return QuestionAnsweringModelOutput(
             loss=total_loss,
             start_logits=start_logits,
@@ -1086,13 +1083,13 @@ class GptBertForMultipleChoice(GptBertModel):
         self.post_init()
 
     def forward(
-        self,
-        input_ids: Optional[torch.Tensor] = None,
-        attention_mask: Optional[torch.Tensor] = None,
-        labels: Optional[torch.Tensor] = None,
-        output_hidden_states: Optional[bool] = None,
-        return_dict: Optional[bool] = None,
-        **kwargs
+            self,
+            input_ids: Optional[torch.Tensor] = None,
+            attention_mask: Optional[torch.Tensor] = None,
+            labels: Optional[torch.Tensor] = None,
+            output_hidden_states: Optional[bool] = None,
+            return_dict: Optional[bool] = None,
+            **kwargs
     ) -> Union[Tuple[torch.Tensor], MultipleChoiceModelOutput]:
         return_dict = return_dict if return_dict is not None else self.config.use_return_dict
         num_choices = input_ids.shape[1]
@@ -1100,7 +1097,9 @@ class GptBertForMultipleChoice(GptBertModel):
         flat_input_ids = input_ids.view(-1, input_ids.size(-1))
         flat_attention_mask = attention_mask.view(-1, attention_mask.size(-1)) if attention_mask is not None else None
 
-        sequence_output, contextualized_embeddings = self.get_contextualized_embeddings(flat_input_ids, flat_attention_mask, output_hidden_states)
+        sequence_output, contextualized_embeddings = self.get_contextualized_embeddings(flat_input_ids,
+                                                                                        flat_attention_mask,
+                                                                                        output_hidden_states)
         logits = self.classifier(sequence_output)
         reshaped_logits = logits.view(-1, num_choices)
 
@@ -1108,13 +1107,6 @@ class GptBertForMultipleChoice(GptBertModel):
         if labels is not None:
             loss_fct = nn.CrossEntropyLoss()
             loss = loss_fct(reshaped_logits, labels)
-
-        if not return_dict:
-            output = (
-                reshaped_logits,
-                *([contextualized_embeddings] if output_hidden_states else [])
-            )
-            return ((loss,) + output) if loss is not None else output
 
         return MultipleChoiceModelOutput(
             loss=loss,
