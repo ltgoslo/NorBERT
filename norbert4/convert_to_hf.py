@@ -11,11 +11,13 @@ STEP_PATTERN = re.compile(r"\d+")
 
 def parse_args():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--input_model_directory', type=str, default='/cluster/work/projects/nn9851k/mariiaf/hplt/')
+    parser.add_argument('--input_model_directory', type=str, default='/cluster/work/projects/nn9851k/mariiaf/hplt/ltg_Latn/norbert_1_node/NorBERT4_small_ltg_Latn_1_nodes/')
     parser.add_argument('--output_model_directory', type=str, default='/cluster/work/projects/nn9851k/mariiaf/hplt/hplt_hf_models')
     parser.add_argument('--language', type=str, default='deu_Latn')
     parser.add_argument('--all_checkpoints', action='store_true')
-    parser.add_argument('--model_directory', default="norbert_2_nodes/")
+    parser.add_argument('--tokenizer_directory', default="/cluster/work/projects/nn9851k/mariiaf/hplt/ltg_Latn/")
+    parser.add_argument('--prototype_directory', default="huggingface_prototype")
+    parser.add_argument('--final_checkpoint', type=int, default=31250)
     args = parser.parse_args()
     return args
 
@@ -25,12 +27,12 @@ def convert_to_hf(
         output_model_directory,
         language,
         all_checkpoints,
-        model_directory,
+        tokenizer_directory,
+        prototype_directory,
+        final_checkpoint,
 ):
-    checkpointing_steps = [31250]
-    checkpoints_directory = os.path.join(
-        input_model_directory, language, model_directory, f"NorBERT4_base_{language}",
-    )
+    checkpointing_steps = [final_checkpoint]
+    checkpoints_directory = input_model_directory
     if all_checkpoints:
         print(f"Files in the checkpoints_directory: {os.listdir(checkpoints_directory)}")
         for bin_name in os.listdir(checkpoints_directory):
@@ -52,7 +54,6 @@ def convert_to_hf(
         if not os.path.exists(step_output_model_directory):
             os.makedirs(step_output_model_directory)
 
-        prototype_directory = "huggingface_prototype"
         os.system(f"cp {prototype_directory}/* {step_output_model_directory}")
 
         if torch.cuda.is_available():
@@ -64,17 +65,19 @@ def convert_to_hf(
             new_state_dict[k.removeprefix("_orig_mod.")] = v
         torch.save(new_state_dict, os.path.join(step_output_model_directory, "pytorch_model.bin"))
 
-        os.system(f"cp {input_model_directory}/{language}/tokenizer.json {step_output_model_directory}")
+        os.system(f"cp {tokenizer_directory}/tokenizer.json {step_output_model_directory}")
 
 
 def main():
     args = parse_args()
     convert_to_hf(
-        args.input_model_directory,
-        args.output_model_directory,
+        os.path.expanduser(args.input_model_directory),
+        os.path.expanduser(args.output_model_directory),
         args.language,
         args.all_checkpoints,
-        args.model_directory,
+        args.tokenizer_directory,
+        args.prototype_directory,
+        args.final_checkpoint,
     )
 
 
