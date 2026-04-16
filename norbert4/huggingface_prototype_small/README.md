@@ -22,7 +22,7 @@ Our models follow the setup of [GPT-BERT](https://aclanthology.org/2024.conll-ba
 - hidden size: 384
 - attention heads: 6
 - layers: 12
-- vocabulary size: 32768
+- vocabulary size: 16384
 
 Every model uses its own tokenizer trained on language-specific HPLT data. 
 
@@ -46,7 +46,7 @@ model = AutoModelForMaskedLM.from_pretrained(
     use_safetensors=False,
 )
 model = model.eval()
-input_text = f"Norwegian is a {tokenizer.mask_token} Germanic language"
+input_text = f"Deļ plotuo iudiņbaseina Latgolā lela iudiņa putnu, {tokenizer.mask_token} kustūnis i molusku vysaideiba"
 print(input_text)
 # Tokenize text (with a mask token inside)
 input_text = tokenizer(
@@ -64,7 +64,7 @@ output_text = torch.where(
     input_text.input_ids
 )
 
-# Decoding; should output: 'Norwegian is a North Germanic language'
+# Decoding; should output: 'Deļ plotuo iudiņbaseina Latgolā lela iudiņa putnu, iudiņa kustūnis i molusku vysaideiba'
 print(tokenizer.decode(output_text[0].tolist()))
 ```
 
@@ -84,7 +84,7 @@ model = AutoModelForCausalLM.from_pretrained(
     trust_remote_code=True, 
     use_safetensors=False,
 )
-text = f"The Norwegian Constitution"
+text = f"Deļ plotuo iudiņbaseina Latgolā lela iudiņa putnu, iudiņa kustūnis i molusku vysaideiba, "
 print(text, flush=True)
 # Define tokens that should end the generation
 eos_token_ids = [
@@ -105,7 +105,7 @@ def generate(text):
     )
     return tokenizer.decode(prediction[0]).strip()
 
-# Example usage, should output '[CLS]The Norwegian Constitution[SEP]is a document that defines the rights and responsibilities of the Norwegian people and their representatives.'
+# Example usage, should output '[CLS]Deļ plotuo iudiņbaseina Latgolā lela iudiņa putnu, iudiņa kustūnis i molusku vysaideiba, [SEP] i iudiņu cici iudiņa īmiņs, muorku teiklā vysā vīna navineineiba i atkareiba.'
 print(generate(text), flush=True)
 ```
 
@@ -113,11 +113,11 @@ The following classes are currently implemented: `AutoModel`, `AutoModelForMaske
 
 ## Intermediate checkpoints
 
-We are releasing 10 intermediate checkpoints for each model at intervals of every 3125 training steps in separate branches. The naming convention is `stepXXX`: for example, `step18750`.
+We are releasing 10 intermediate checkpoints for each model at intervals of every 1562 training steps in separate branches. The naming convention is `stepXXX`: for example, `step14058`.
 
 You can load a specific model revision with `transformers` using the argument `revision`:
 ```python
-model = AutoModelForSeq2SeqLM.from_pretrained("HPLT/hplt_gpt_bert_small_3_0_ltg_Latn", revision="step21875", trust_remote_code=True)
+model = AutoModelForSeq2SeqLM.from_pretrained("HPLT/hplt_gpt_bert_small_3_0_ltg_Latn", revision="step14058", trust_remote_code=True)
 ```
 
 You can access all the revisions for the models with the following code:
