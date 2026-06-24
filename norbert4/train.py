@@ -181,7 +181,7 @@ def prepare_model_and_optimizer(args):
     model.cuda(args.device)
 
     # NanoGPT does this before initializing the optimizer and scheduler
-    model = torch.compile(model, dynamic=False)
+    model = torch.compile(model, dynamic=True)
 
     ddp_model = DDP(
         model,
